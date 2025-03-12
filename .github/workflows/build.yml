@@ -1,21 +1,13 @@
 ---
 name: Build Bazzite DX
 on:
-  pull_request:
-    branches:
-      - main
   schedule:
     # 7:10 UTC Monday
     # - Bazzite is built 4:40 utc Monday and takes roughly 90 minutes
     #   so this schedule gives about an hour wiggle room
     # - Bluefin/Aurora are built everyday at 4:40 utc as well
     - cron: "10 7 * * 1" # 4:40 utc monday
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - "**/README.md"
-      - "repo_files/**"
+  merge_group:
   workflow_dispatch:
 
 env:
