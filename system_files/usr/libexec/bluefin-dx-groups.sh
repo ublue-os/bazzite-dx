@@ -24,7 +24,7 @@ append_group() {
       echo "$gline" >> /etc/group
       break
     fi
-  done < <(cat /usr/lib/group /usr/etc/group)
+  done < <(cat /usr/lib/group /usr/etc/group || :)
   # NOTE(@Zeglius Thu Mar 13 2025): Concatenate /usr/lib/group and /usr/etc/group.
   # I'm observing docker being missing at /usr/lib/group.
   # Probably because of rechunk not being used in my custom image and thus groups not being processed.
