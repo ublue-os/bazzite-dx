@@ -8,6 +8,9 @@ dnf5 install -y \
     restic \
     rclone
 
+dnf5 install --enable-repo="copr:copr.fedorainfracloud.org:ublue-os:packages" \
+  ublue-setup-services
+
 # Adding repositories should be a LAST RESORT. Contributing to Terra or `ublue-os/packages` is much preferred
 # over using random coprs. Please keep this in mind when adding external dependencies.
 # If adding any dependency, make sure to always have it disabled by default and _only_ enable it on `dnf install`
