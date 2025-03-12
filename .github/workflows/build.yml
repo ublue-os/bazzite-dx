@@ -5,7 +5,10 @@ on:
     branches:
       - main
   schedule:
-    - cron: "05 10 * * *" # 10:05am UTC everyday
+    # 6:00 UTC Monday
+    # - Bazzite is built 4:40 utc monday
+    # - Bluefin/Aurora are built everyday at 4:40 utc as well
+    - cron: "00 6 * * 1" # 4:40 utc monday
   push:
     branches:
       - main
