@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# TODO: Move this to ublue-os/packages as 'ublue-os-dx-groups'
+# TODO: Replace this with ublue-setup-services
 # See: https://github.com/ublue-os/bluefin/blob/1be5bcabc0b584b16611ecde557027f1f4b292d3/system_files/dx/usr/libexec/bluefin-dx-groups
 
 # SCRIPT VERSION
