@@ -101,6 +101,16 @@ jobs:
           # https://linux.die.net/man/1/date
           echo "date=$(date -u +%Y\-%m\-%d\T%H\:%M\:%S\Z)" >> $GITHUB_OUTPUT
 
+      # TODO (@Zeglius Thu Mar 13 22:48:32 CET 2025): Probably there is a more optimal way to fetch major version
+      - name: Get image os-release major version
+        id: os_release_major
+        run: |
+          ctr=$(sudo podman create -q --rm ghcr.io/ublue-os/${BASE_IMAGE}:latest)
+          sudo podman cp ${ctr}:/usr/lib/os-release ./os-release
+          sudo podman rm ${ctr} --force
+          MAJOR_VER="$(source ./os-release | echo ${VERSION_ID})"
+          echo "MAJOR_VER=$MAJOR_VER" >>$GITHUB_ENV
+
       - name: Generate output image ref
         id: gen_image_ref
         run: |
@@ -117,10 +127,10 @@ jobs:
           tags: |
             type=raw,value=latest
             type=raw,value=stable
-            type=raw,value=stable-41
-            type=raw,value=stable-41.{{date 'YYYYMMDD'}}
-            type=raw,value=41
-            type=raw,value=41.{{date 'YYYYMMDD'}}
+            type=raw,value=stable-${{ env.MAJOR_VER }}
+            type=raw,value=stable-${{ env.MAJOR_VER }}.{{date 'YYYYMMDD'}}
+            type=raw,value=${{ env.MAJOR_VER }}
+            type=raw,value=${{ env.MAJOR_VER }}.{{date 'YYYYMMDD'}}
             type=sha,enable=${{ github.event_name == 'pull_request' }}
             type=ref,event=pr
           labels: |
