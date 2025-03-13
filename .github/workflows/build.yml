@@ -69,6 +69,13 @@ jobs:
     name: Build and push image
     runs-on: ubuntu-24.04
 
+    strategy:
+      matrix:
+        BASE_IMAGE: ${{ needs.generate_image_matrix.outputs.BASE_IMAGES }}
+
+    env:
+      BASE_IMAGE: ${{ matrix.BASE_IMAGE }}
+
     permissions:
       contents: read
       packages: write
@@ -93,6 +100,11 @@ jobs:
           # https://artifacthub.io/docs/topics/repositories/container-images/
           # https://linux.die.net/man/1/date
           echo "date=$(date -u +%Y\-%m\-%d\T%H\:%M\:%S\Z)" >> $GITHUB_OUTPUT
+
+      - name: Generate output image ref
+        id: gen_image_ref
+        run: |
+          echo "IMAGE_NAME=${IMAGE_REGISTRY%/}/${BASE_IMAGE/bazzite/bazzite-dx}" | tee -a $GITHUB_ENV
 
       # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
       # The metadata by itself is not going to do anything, you choose if you want your image to be on ArtifactHub or not.
