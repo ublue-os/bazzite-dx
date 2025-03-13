@@ -17,6 +17,8 @@ fi
 append_group() {
   local group_name="${1:?}"
   local gline
+
+  grep -qE "^$group_name" /etc/group && return
   while read -r gline; do
     [[ -z ${gline} || ${gline} =~ ^#.* ]] && continue
     if [[ ${gline%%:*} == "$group_name" ]]; then
