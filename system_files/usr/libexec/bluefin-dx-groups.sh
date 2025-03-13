@@ -18,7 +18,11 @@ append_group() {
   local group_name="$1"
   if ! grep -q "^$group_name:" /etc/group; then
     echo "Appending $group_name to /etc/group"
-    grep "^$group_name:" /usr/lib/group | tee -a /etc/group > /dev/null
+    # NOTE(@Zeglius Thu Mar 13 2025): Concatenate /usr/lib/group and /usr/etc/group.
+    # I'm observing docker being missing at /usr/lib/group.
+    # Probably because of rechunk not being used in my custom image and thus groups not being processed.
+    grep "^$group_name:" <(cat /usr/lib/group /usr/etc/group) | head -1 |
+      tee -a /etc/group > /dev/null
   fi
 }
 
