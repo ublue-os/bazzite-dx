@@ -15,21 +15,11 @@ fi
 
 # Function to append a group entry to /etc/group
 append_group() {
-  local group_name="${1:?}"
-  local gline
-
-  { grep -qE "^$group_name" /etc/group && return; } || :
-  while read -r gline; do
-    [[ -z ${gline} || ${gline} =~ ^#.* ]] && continue
-    if [[ ${gline%%:*} == "$group_name" ]]; then
-      echo "Appending $group_name to /etc/group"
-      echo "$gline" >> /etc/group
-      break
-    fi
-  done < <(cat /usr/lib/group /usr/etc/group || :)
-  # NOTE(@Zeglius Thu Mar 13 2025): Concatenate /usr/lib/group and /usr/etc/group.
-  # I'm observing docker being missing at /usr/lib/group.
-  # Probably because of rechunk not being used in my custom image and thus groups not being processed.
+  local group_name="$1"
+  if ! grep -q "^$group_name:" /etc/group; then
+    echo "Appending $group_name to /etc/group"
+    grep "^$group_name:" /usr/lib/group | tee -a /etc/group > /dev/null
+  fi
 }
 
 # Setup Groups
