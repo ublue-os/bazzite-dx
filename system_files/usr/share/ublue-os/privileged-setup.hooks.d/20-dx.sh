@@ -2,7 +2,7 @@
 
 source /usr/lib/ublue/setup-services/libsetup.sh
 
-version-script dx-usergroups-lts privileged 1 || exit 0
+version-script dx-usergroups privileged 1 || exit 0
 
 # Function to append a group entry to /etc/group
 append_group() {
