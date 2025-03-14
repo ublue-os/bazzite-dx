@@ -107,37 +107,38 @@ jobs:
           # https://linux.die.net/man/1/date
           echo "date=$(date -u +%Y\-%m\-%d\T%H\:%M\:%S\Z)" >> $GITHUB_OUTPUT
 
-      # TODO (@Zeglius Thu Mar 13 22:48:32 CET 2025): Probably there is a more optimal way to fetch major version
+      # OUTPUTS:
+      #   - SOURCE_VERSION: version of the source image. Ex.: testing-41.20250312
+      #   - SOURCE_VERSION_MAJOR: major version. Used to identify big releases. Ex.: 41
       - name: Get image major version
-        id: fetch_major_version
+        id: fetch_source_meta
         env:
           org: "ublue-os" # TODO (@Zeglius Fri Mar 14 16:31:12 CET 2025) Move this param to upper env block
           IMAGE_SOURCE_TAG: ${{ env.IMAGE_SOURCE_TAG || 'latest' }}
         run: |
-          # MAJOR_VER must be a number
-          declare -i MAJOR_VER=0
+          # SOURCE_VERSION_MAJOR must be a number
+          declare -i SOURCE_VERSION_MAJOR=0
           
           # There are some ways to get the major release from an image.
           # First method: `skopeo inspect` and annotations.
-          _tag=$(
-            _t=$(
+          
+          SOURCE_VERSION=$(
                 skopeo inspect --no-tags --raw \
                 "docker://ghcr.io/${org}/${BASE_IMAGE}:${IMAGE_SOURCE_TAG}" | \
                 jq -r '.annotations["org.opencontainers.image.version"]'
-            )
-            [[ $_t =~ ^(.*-)?([[:digit:]]+) ]] && echo "${BASH_REMATCH[-1]}"
           )
-          _tag=$([[ $_tag =~ ^(.*-)?([[:digit:]]+) ]] && echo "${BASH_REMATCH[-1]}")
-          MAJOR_VER=$_tag
+          echo "SOURCE_VERSION=$SOURCE_VERSION" >>$GITHUB_OUTPUT
+          
+          SOURCE_VERSION_MAJOR=$([[ ${SOURCE_VERSION} =~ ^(.*-)?([[:digit:]]+) ]] && echo "${BASH_REMATCH[-1]}")
           _status=$?
           unset -v _tag
           
-          if [[ $_status -ne 0 ]] || [[ -z ${MAJOR_VER} ]] || (( MAJOR_VER <= 0 )); then
-            echo "::error::MAJOR_VER was not fetched correctly: MAJOR_VER=${MAJOR_VER}"
+          if [[ $_status -ne 0 ]] || [[ -z ${SOURCE_VERSION_MAJOR} ]] || (( SOURCE_VERSION_MAJOR <= 0 )); then
+            echo "::error::SOURCE_VERSION_MAJOR was not fetched correctly: SOURCE_VERSION_MAJOR=${SOURCE_VERSION_MAJOR}"
             exit 1
           fi
           
-          echo "MAJOR_VER=$MAJOR_VER" >>$GITHUB_OUTPUT
+          echo "SOURCE_VERSION_MAJOR=$MAJOR_VER" >>$GITHUB_OUTPUT
 
       - name: Generate output image ref
         id: gen_image_ref
@@ -155,10 +156,10 @@ jobs:
           tags: |
             type=raw,value=latest
             type=raw,value=stable
-            type=raw,value=stable-${{ steps.fetch_major_version.outputs.MAJOR_VER }}
-            type=raw,value=stable-${{ steps.fetch_major_version.outputs.MAJOR_VER }}.{{date 'YYYYMMDD'}}
-            type=raw,value=${{ steps.fetch_major_version.outputs.MAJOR_VER }}
-            type=raw,value=${{ steps.fetch_major_version.outputs.MAJOR_VER }}.{{date 'YYYYMMDD'}}
+            type=raw,value=stable-${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}
+            type=raw,value=stable-${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}.{{date 'YYYYMMDD'}}
+            type=raw,value=${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}
+            type=raw,value=${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}.{{date 'YYYYMMDD'}}
             type=sha,enable=${{ github.event_name == 'pull_request' }}
             type=ref,event=pr
           labels: |
@@ -170,7 +171,7 @@ jobs:
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
             org.opencontainers.image.url=https://github.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
             org.opencontainers.image.vendor=${{ github.repository_owner }}
-            org.opencontainers.image.version=latest
+            org.opencontainers.image.version=${{ steps.fetch_source_meta.outputs.SOURCE_VERSION }}
             io.artifacthub.package.deprecated=false
             io.artifacthub.package.keywords=bootc,ublue,universal-blue
             io.artifacthub.package.license=Apache-2.0
