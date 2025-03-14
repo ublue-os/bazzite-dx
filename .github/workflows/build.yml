@@ -39,6 +39,8 @@ jobs:
     steps:
       - id: fetch_names
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mapfile -t images < <(
             gh api \
