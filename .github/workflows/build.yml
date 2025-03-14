@@ -16,6 +16,10 @@ env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}" # do not edit
   ARTIFACTHUB_LOGO_URL: "https://raw.githubusercontent.com/astrovm/amyos/main/repo_files/amy-logo-white.png" # You should put your own image here so that you get a fancy profile image on https://artifacthub.io/!
 
+  # The tag used in the image from which we base of.
+  # ex.: ghcr.io/org/image:IMAGE_SOURCE_TAG
+  IMAGE_SOURCE_TAG: "latest"
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.brand_name}}-${{ inputs.stream_name }}
   cancel-in-progress: true
@@ -104,12 +108,34 @@ jobs:
       # TODO (@Zeglius Thu Mar 13 22:48:32 CET 2025): Probably there is a more optimal way to fetch major version
       - name: Get image os-release major version
         id: os_release_major
+        env:
+          org: "ublue-os" # TODO (@Zeglius Fri Mar 14 16:31:12 CET 2025) Move this param to upper env block
+          IMAGE_SOURCE_TAG: ${{ env.IMAGE_SOURCE_TAG || 'latest' }}
         run: |
-          ctr=$(sudo podman create -q --rm ghcr.io/ublue-os/${BASE_IMAGE}:latest)
-          sudo podman cp ${ctr}:/usr/lib/os-release ./os-release
-          sudo podman rm ${ctr} --force
-          MAJOR_VER="$(source ./os-release | echo ${VERSION_ID})"
-          echo "MAJOR_VER=$MAJOR_VER" >>$GITHUB_ENV
+          # MAJOR_VER must be a number
+          declare -i MAJOR_VER=0
+          
+          # There are some ways to get the major release from an image.
+          # First method: `skopeo inspect` and annotations.
+          _tag=$(
+            _t=$(
+                skopeo inspect --no-tags --raw \
+                "docker://ghcr.io/${org}/${BASE_IMAGE}:${IMAGE_SOURCE_TAG}" | \
+                jq -r '.annotations["org.opencontainers.image.version"]'
+            )
+            [[ $_t =~ ^(.*-)?([[:digit:]]+) ]] && echo "${BASH_REMATCH[-1]}"
+          )
+          _tag=$([[ $_tag =~ ^(.*-)?([[:digit:]]+) ]] && echo "${BASH_REMATCH[-1]}")
+          MAJOR_VER=$_tag
+          _status=$?
+          unset -v _tag
+          
+          if [[ $_status -ne 0 ]] || [[ -z ${MAJOR_VER} ]] || (( MAJOR_VER <= 0 )); then
+            echo "::error::MAJOR_VER was not fetched correctly: MAJOR_VER=${MAJOR_VER}"
+            exit 1
+          fi
+          
+          echo "MAJOR_VER=$MAJOR_VER" >>$GITHUB_OUTPUT
 
       - name: Generate output image ref
         id: gen_image_ref
@@ -127,10 +153,10 @@ jobs:
           tags: |
             type=raw,value=latest
             type=raw,value=stable
-            type=raw,value=stable-${{ env.MAJOR_VER }}
-            type=raw,value=stable-${{ env.MAJOR_VER }}.{{date 'YYYYMMDD'}}
-            type=raw,value=${{ env.MAJOR_VER }}
-            type=raw,value=${{ env.MAJOR_VER }}.{{date 'YYYYMMDD'}}
+            type=raw,value=stable-${{ steps.os_release_major.outputs.MAJOR_VER }}
+            type=raw,value=stable-${{ steps.os_release_major.outputs.MAJOR_VER }}.{{date 'YYYYMMDD'}}
+            type=raw,value=${{ steps.os_release_major.outputs.MAJOR_VER }}
+            type=raw,value=${{ steps.os_release_major.outputs.MAJOR_VER }}.{{date 'YYYYMMDD'}}
             type=sha,enable=${{ github.event_name == 'pull_request' }}
             type=ref,event=pr
           labels: |
