@@ -16,7 +16,7 @@ env:
   IMAGE_NAME: "${{ github.event.repository.name }}" # the name of the image produced by this build, matches repo names
   IMAGE_DESC: "${{ github.event.repository.description }}"
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}" # do not edit
-  ARTIFACTHUB_LOGO_URL: "https://raw.githubusercontent.com/astrovm/amyos/main/repo_files/amy-logo-white.png" # You should put your own image here so that you get a fancy profile image on https://artifacthub.io/!
+  ARTIFACTHUB_LOGO_URL: "https://avatars.githubusercontent.com/u/187439889?s=200&v=4"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.brand_name}}-${{ inputs.stream_name }}
