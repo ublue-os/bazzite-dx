@@ -36,14 +36,13 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       BASE_IMAGES: ${{ steps.fetch_names.outputs.BASE_IMAGES }}
-    env:
-      org: ${{ env.SOURCE_ORG }}
-      repo: ${{ env.SOURCE_REPO }}
     steps:
       - id: fetch_names
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          org: ${{ env.SOURCE_ORG }}
+          repo: ${{ env.SOURCE_REPO }}
         run: |
           mapfile -t images < <(
             gh api \
