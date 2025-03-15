@@ -18,16 +18,12 @@ dnf5 clean all
 # Clean temporary files
 rm -rf /tmp/*
 
-# Clean /var directory while preserving essential files
-find /var/* -maxdepth 0 -type d \! -name cache -exec rm -fr {} \;
-find /var/cache/* -maxdepth 0 -type d \! -name libdnf5 \! -name rpm-ostree -exec rm -fr {} \;
-
-# Restore and setup directories
-mkdir -p /var/tmp
-chmod -R 1777 /var/tmp
+# Cleanup the entirety of `/var`.
+# None of these get in the end-user system and bootc lints get super mad if anything is in there
+rm -rf /var
+mkdir -p /var
 
 # Commit and lint container
-ostree container commit
 bootc container lint || true
 
 log "Cleanup completed"
