@@ -12,8 +12,4 @@ This project is built upon the work from [amyos](https://github.com/astrovm/amyo
 
 ## Metrics
 
-<!--
-![Bazzite DX repobeats analytics](https://repobeats.axiom.co/api/embed/8bde34be4a2fcd7f506672742563f330d0b6b240.svg "Repobeats analytics image")
-
-Please add a valid repobeats here!
--->
+![Alt](https://repobeats.axiom.co/api/embed/8568b042f7cfba9dd477885ed5ee6573ab78bb5e.svg "Repobeats analytics image")
