@@ -14,7 +14,7 @@ for dir in /var/opt/*/; do
   [ -d "$dir" ] || continue
   dirname=$(basename "$dir")
   mv "$dir" "/usr/lib/opt/$dirname"
-  echo "L+ /var/opt/$dirname - - - - /usr/lib/opt/$dirname" >>/usr/lib/tmpfiles.d/amyos-opt-fix.conf
+  echo "L+ /var/opt/$dirname - - - - /usr/lib/opt/$dirname" >>/usr/lib/tmpfiles.d/opt-fix.conf
 done
 
 log "Fix completed"
