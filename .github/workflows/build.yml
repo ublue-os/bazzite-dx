@@ -107,7 +107,7 @@ jobs:
       - name: Generate output image ref
         id: gen_image_ref
         run: |
-          echo "IMAGE_NAME=${IMAGE_REGISTRY%/}/${BASE_IMAGE/bazzite/bazzite-dx}" | tee -a $GITHUB_ENV
+          echo "IMAGE_NAME=${BASE_IMAGE/bazzite/bazzite-dx}" | tee -a $GITHUB_ENV
 
       # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
       # The metadata by itself is not going to do anything, you choose if you want your image to be on ArtifactHub or not.
@@ -156,6 +156,8 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           oci: false
+          build-args: |
+            BASE_IMAGE=ghcr.io/${{ env.SOURCE_ORG }}/${{ matrix.base_image }}:${{ env.IMAGE_SOURCE_TAG || 'latest' }}
 
       # Rechunk is a script that we use on Universal Blue to make sure there isnt a single huge layer when your image gets published.
       # This does not make your image faster to download, just provides better resumability and fixes a few errors.
