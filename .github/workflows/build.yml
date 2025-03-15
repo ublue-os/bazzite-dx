@@ -102,7 +102,7 @@ jobs:
             exit 1
           fi
           
-          echo "SOURCE_VERSION_MAJOR=SOURCE_VERSION_MAJOR" >>$GITHUB_OUTPUT
+          echo "SOURCE_VERSION_MAJOR=$SOURCE_VERSION_MAJOR" >>$GITHUB_OUTPUT
 
       - name: Generate output image ref
         id: gen_image_ref
