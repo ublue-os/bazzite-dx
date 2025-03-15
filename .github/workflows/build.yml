@@ -8,13 +8,15 @@ on:
     # - Bluefin/Aurora are built everyday at 4:40 utc as well
     - cron: "10 7 * * 1" # 4:40 utc monday
   merge_group:
+  pull_request:
+    types: [labeled]
   workflow_dispatch:
 
 env:
   IMAGE_NAME: "${{ github.event.repository.name }}" # the name of the image produced by this build, matches repo names
   IMAGE_DESC: "${{ github.event.repository.description }}"
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}" # do not edit
-  ARTIFACTHUB_LOGO_URL: "https://raw.githubusercontent.com/astrovm/amyos/main/repo_files/amy-logo-white.png" # You should put your own image here so that you get a fancy profile image on https://artifacthub.io/!
+  ARTIFACTHUB_LOGO_URL: "https://avatars.githubusercontent.com/u/187439889?s=200&v=4"
 
   # The tag used in the image from which we base of.
   # ex.: ghcr.io/org/image:IMAGE_SOURCE_TAG
@@ -81,6 +83,7 @@ jobs:
 
     env:
       BASE_IMAGE: ${{ matrix.BASE_IMAGE }}
+    if: contains(github.event.pull_request.labels.*.name, 'safe-to-run')
 
     permissions:
       contents: read
@@ -91,6 +94,9 @@ jobs:
       # These stage versions are pinned by https://github.com/renovatebot/renovate
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       # This is optional, but if you see that your builds are way too big for the runners, you can enable this by uncommenting the following lines:
       # - name: Maximize build space
@@ -220,7 +226,7 @@ jobs:
       # These `if` statements are so that pull requests for your custom images do not make it publish any packages under your name without you knowing
       # They also check if the runner is on the default branch so that things like the merge queue (if you enable it), are going to work
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         with:
           registry: ghcr.io
@@ -229,17 +235,15 @@ jobs:
 
       # Workaround bug where capital letters in your GitHub username make it impossible to push to GHCR.
       # https://github.com/macbre/push-to-ghcr/issues/12
-      - name: Lowercase Registry
-        id: registry_case
-        uses: ASzc/change-string-case-action@d0603cd0a7dd490be678164909f65c7737470a7f # v6
-        with:
-          string: ${{ env.IMAGE_REGISTRY }}
-
-      - name: Lowercase Image
-        id: image_case
-        uses: ASzc/change-string-case-action@d0603cd0a7dd490be678164909f65c7737470a7f # v6
-        with:
-          string: ${{ env.IMAGE_NAME }}
+      - name: Lowercase Image and Registry
+        id: lowercase
+        env:
+          IMAGE_REGISTRY: ${{ env.IMAGE_REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+        run: |
+          set -x
+          echo "registry=${IMAGE_REGISTRY,,}" >> $GITHUB_OUTPUT
+          echo "image=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
 
       - name: Push To GHCR
         uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2
@@ -249,8 +253,8 @@ jobs:
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_PASSWORD: ${{ github.token }}
         with:
-          registry: ${{ steps.registry_case.outputs.lowercase }}
-          image: ${{ steps.image_case.outputs.lowercase }}
+          registry: ${{ steps.lowercase.outputs.registry }}
+          image: ${{ steps.lowercase.outputs.image }}
           tags: ${{ steps.metadata.outputs.tags }}
           username: ${{ env.REGISTRY_USER }}
           password: ${{ env.REGISTRY_PASSWORD }}
@@ -265,9 +269,13 @@ jobs:
 
       - name: Sign container image
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        env:
+          LOWERCASE_REGISTRY: ${{ steps.lowercase.outputs.registry }}
+          LOWERCASE_IMAGE: ${{ steps.lowercase.outputs.image }}
+          TAGS_TO_SIGN: ${{ steps.metadata.outputs.tags }}
         run: |
-          IMAGE_FULL="${{ steps.registry_case.outputs.lowercase }}/${{ steps.image_case.outputs.lowercase }}"
-          for tag in ${{ steps.metadata.outputs.tags }}; do
+          IMAGE_FULL="${LOWERCASE_REGISTRY}/${LOWERCASE_IMAGE}"
+          for tag in ${TAGS_TO_SIGN}; do
             cosign sign -y --key env://COSIGN_PRIVATE_KEY $IMAGE_FULL:$tag
           done
         env:
