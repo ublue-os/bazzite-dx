@@ -17,15 +17,73 @@ env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}" # do not edit
   ARTIFACTHUB_LOGO_URL: "https://avatars.githubusercontent.com/u/187439889?s=200&v=4"
 
+  # The tag used in the image from which we base of.
+  # ex.: ghcr.io/org/image:IMAGE_SOURCE_TAG
+  IMAGE_SOURCE_TAG: "latest"
+  SOURCE_ORG: "ublue-os"
+  SOURCE_REPO: "bazzite"
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.brand_name}}-${{ inputs.stream_name }}
   cancel-in-progress: true
 
 jobs:
+  # Fetch image names built from [Bazzite repo](https://github.com/ublue-os/bazzite)
+  # and filter out certain ones.
+  generate_image_matrix:
+    permissions:
+      packages: read
+    runs-on: ubuntu-24.04
+    outputs:
+      BASE_IMAGES: ${{ steps.fetch_names.outputs.BASE_IMAGES }}
+    env:
+      org: ${{ env.SOURCE_ORG }}
+      repo: ${{ env.SOURCE_REPO }}
+    steps:
+      - id: fetch_names
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mapfile -t images < <(
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              --paginate \
+              "/orgs/${org}/packages?package_type=container" | \
+            jq -r \
+              ".[] | select(.repository.full_name == \"$org/$repo\") | .name" \
+          )
+
+          # Here we filter out images
+          _re='ally|surface|budgie|asus|cosmic'
+          images_allowed=()
+          for img in "${images[@]}"; do
+            [[ $img =~ $_re ]] && continue
+            images_allowed+=($img)
+          done && unset -v images _re img
+          images_allowed=( $(echo "${images_allowed[@]}" | sort -u) ) # Ensure we have no repetition
+          
+          # Create the json output
+          images_json="[ "
+          for img in "${images_allowed[@]}"; do
+            images_json+="\"$img\", "
+          done && unset -v img images_allowed
+          images_json="${images_json%%,@( )} ]"
+          
+          echo "BASE_IMAGES=$images_json" | tee --append $GITHUB_OUTPUT
+
   build_push:
+    needs: [generate_image_matrix]
     name: Build and push image
     runs-on: ubuntu-24.04
 
+    strategy:
+      matrix:
+        BASE_IMAGE: ${{ needs.generate_image_matrix.outputs.BASE_IMAGES }}
+
+    env:
+      BASE_IMAGE: ${{ matrix.BASE_IMAGE }}
     if: contains(github.event.pull_request.labels.*.name, 'safe-to-run')
 
     permissions:
@@ -53,6 +111,44 @@ jobs:
           # https://linux.die.net/man/1/date
           echo "date=$(date -u +%Y\-%m\-%d\T%H\:%M\:%S\Z)" >> $GITHUB_OUTPUT
 
+      # OUTPUTS:
+      #   - SOURCE_VERSION: version of the source image. Ex.: testing-41.20250312
+      #   - SOURCE_VERSION_MAJOR: major version. Used to identify big releases. Ex.: 41
+      - name: Get image major version
+        id: fetch_source_meta
+        env:
+          org: ${{ env.SOURCE_ORG }}
+          IMAGE_SOURCE_TAG: ${{ env.IMAGE_SOURCE_TAG || 'latest' }}
+        run: |
+          # SOURCE_VERSION_MAJOR must be a number
+          declare -i SOURCE_VERSION_MAJOR=0
+          
+          # There are some ways to get the major release from an image.
+          # First method: `skopeo inspect` and annotations.
+          
+          SOURCE_VERSION=$(
+                skopeo inspect --no-tags --raw \
+                "docker://ghcr.io/${org}/${BASE_IMAGE}:${IMAGE_SOURCE_TAG}" | \
+                jq -r '.annotations["org.opencontainers.image.version"]'
+          )
+          echo "SOURCE_VERSION=$SOURCE_VERSION" >>$GITHUB_OUTPUT
+          
+          SOURCE_VERSION_MAJOR=$([[ ${SOURCE_VERSION} =~ ^(.*-)?([[:digit:]]+) ]] && echo "${BASH_REMATCH[-1]}")
+          _status=$?
+          unset -v _tag
+          
+          if [[ $_status -ne 0 ]] || [[ -z ${SOURCE_VERSION_MAJOR} ]] || (( SOURCE_VERSION_MAJOR <= 0 )); then
+            echo "::error::SOURCE_VERSION_MAJOR was not fetched correctly: SOURCE_VERSION_MAJOR=${SOURCE_VERSION_MAJOR}"
+            exit 1
+          fi
+          
+          echo "SOURCE_VERSION_MAJOR=$MAJOR_VER" >>$GITHUB_OUTPUT
+
+      - name: Generate output image ref
+        id: gen_image_ref
+        run: |
+          echo "IMAGE_NAME=${IMAGE_REGISTRY%/}/${BASE_IMAGE/bazzite/bazzite-dx}" | tee -a $GITHUB_ENV
+
       # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
       # The metadata by itself is not going to do anything, you choose if you want your image to be on ArtifactHub or not.
       - name: Image Metadata
@@ -64,10 +160,10 @@ jobs:
           tags: |
             type=raw,value=latest
             type=raw,value=stable
-            type=raw,value=stable-41
-            type=raw,value=stable-41.{{date 'YYYYMMDD'}}
-            type=raw,value=41
-            type=raw,value=41.{{date 'YYYYMMDD'}}
+            type=raw,value=stable-${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}
+            type=raw,value=stable-${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}.{{date 'YYYYMMDD'}}
+            type=raw,value=${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}
+            type=raw,value=${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}.{{date 'YYYYMMDD'}}
             type=sha,enable=${{ github.event_name == 'pull_request' }}
             type=ref,event=pr
           labels: |
@@ -79,7 +175,6 @@ jobs:
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
             org.opencontainers.image.url=https://github.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
             org.opencontainers.image.vendor=${{ github.repository_owner }}
-            org.opencontainers.image.version=latest
             io.artifacthub.package.deprecated=false
             io.artifacthub.package.keywords=bootc,ublue,universal-blue
             io.artifacthub.package.license=Apache-2.0
@@ -176,12 +271,11 @@ jobs:
           LOWERCASE_REGISTRY: ${{ steps.lowercase.outputs.registry }}
           LOWERCASE_IMAGE: ${{ steps.lowercase.outputs.image }}
           TAGS_TO_SIGN: ${{ steps.metadata.outputs.tags }}
+          TAGS: ${{ steps.push.outputs.digest }}
+          COSIGN_EXPERIMENTAL: false
+          COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
         run: |
           IMAGE_FULL="${LOWERCASE_REGISTRY}/${LOWERCASE_IMAGE}"
           for tag in ${TAGS_TO_SIGN}; do
             cosign sign -y --key env://COSIGN_PRIVATE_KEY $IMAGE_FULL:$tag
           done
-        env:
-          TAGS: ${{ steps.push.outputs.digest }}
-          COSIGN_EXPERIMENTAL: false
-          COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
