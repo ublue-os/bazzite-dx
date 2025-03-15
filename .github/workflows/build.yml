@@ -244,7 +244,7 @@ jobs:
     name: Check all builds successful
     if: always()
     runs-on: ubuntu-latest
-    needs: [build_packages]
+    needs: [build_push]
     steps:
       - name: Check Jobs
         env:
