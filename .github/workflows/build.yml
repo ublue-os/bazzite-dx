@@ -43,7 +43,6 @@ jobs:
 
     env:
       BASE_IMAGE: ${{ matrix.base_image }}
-    if: contains(github.event.pull_request.labels.*.name, 'safe-to-run')
 
     permissions:
       contents: read
