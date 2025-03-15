@@ -34,6 +34,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     strategy:
+      fail-fast: false
       matrix:
         base_image:
           - bazzite
