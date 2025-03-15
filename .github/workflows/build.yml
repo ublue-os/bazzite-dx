@@ -21,6 +21,8 @@ env:
   # The tag used in the image from which we base of.
   # ex.: ghcr.io/org/image:IMAGE_SOURCE_TAG
   IMAGE_SOURCE_TAG: "latest"
+  SOURCE_ORG: "ublue-os"
+  SOURCE_REPO: "bazzite"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.brand_name}}-${{ inputs.stream_name }}
@@ -36,8 +38,8 @@ jobs:
     outputs:
       BASE_IMAGES: ${{ steps.fetch_names.outputs.BASE_IMAGES }}
     env:
-      org: "ublue-os"
-      repo: "bazzite"
+      org: ${{ env.SOURCE_ORG }}
+      repo: ${{ env.SOURCE_REPO }}
     steps:
       - id: fetch_names
         shell: bash
@@ -119,7 +121,7 @@ jobs:
       - name: Get image major version
         id: fetch_source_meta
         env:
-          org: "ublue-os" # TODO (@Zeglius Fri Mar 14 16:31:12 CET 2025) Move this param to upper env block
+          org: ${{ env.SOURCE_ORG }}
           IMAGE_SOURCE_TAG: ${{ env.IMAGE_SOURCE_TAG || 'latest' }}
         run: |
           # SOURCE_VERSION_MAJOR must be a number
