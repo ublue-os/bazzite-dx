@@ -28,62 +28,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Fetch image names built from [Bazzite repo](https://github.com/ublue-os/bazzite)
-  # and filter out certain ones.
-  generate_image_matrix:
-    permissions:
-      packages: read
-    runs-on: ubuntu-24.04
-    outputs:
-      BASE_IMAGES: ${{ steps.fetch_names.outputs.BASE_IMAGES }}
-    steps:
-      - id: fetch_names
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          org: ${{ env.SOURCE_ORG }}
-          repo: ${{ env.SOURCE_REPO }}
-        run: |
-          mapfile -t images < <(
-            gh api \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              --paginate \
-              "/orgs/${org}/packages?package_type=container" | \
-            jq -r \
-              ".[] | select(.repository.full_name == \"$org/$repo\") | .name" \
-          )
-
-          # Here we filter out images
-          _re='ally|surface|budgie|asus|cosmic'
-          images_allowed=()
-          for img in "${images[@]}"; do
-            [[ $img =~ $_re ]] && continue
-            images_allowed+=($img)
-          done && unset -v images _re img
-          images_allowed=( $(echo "${images_allowed[@]}" | sort -u) ) # Ensure we have no repetition
-          
-          # Create the json output
-          images_json="[ "
-          for img in "${images_allowed[@]}"; do
-            images_json+="\"$img\", "
-          done && unset -v img images_allowed
-          images_json="${images_json%%,@( )} ]"
-          
-          echo "BASE_IMAGES=$images_json" | tee --append $GITHUB_OUTPUT
 
   build_push:
-    needs: [generate_image_matrix]
     name: Build and push image
     runs-on: ubuntu-24.04
 
     strategy:
+      fail-fast: false
       matrix:
-        BASE_IMAGE: ${{ needs.generate_image_matrix.outputs.BASE_IMAGES }}
+        base_image:
+          - bazzite
+          - bazzite-gnome
+          - bazzite-gnome-nvidia-open
+          - bazzite-nvidia-open
 
     env:
-      BASE_IMAGE: ${{ matrix.BASE_IMAGE }}
-    if: contains(github.event.pull_request.labels.*.name, 'safe-to-run')
+      BASE_IMAGE: ${{ matrix.base_image }}
 
     permissions:
       contents: read
@@ -119,6 +79,7 @@ jobs:
           org: ${{ env.SOURCE_ORG }}
           IMAGE_SOURCE_TAG: ${{ env.IMAGE_SOURCE_TAG || 'latest' }}
         run: |
+          set -x
           # SOURCE_VERSION_MAJOR must be a number
           declare -i SOURCE_VERSION_MAJOR=0
           
@@ -141,7 +102,7 @@ jobs:
             exit 1
           fi
           
-          echo "SOURCE_VERSION_MAJOR=$MAJOR_VER" >>$GITHUB_OUTPUT
+          echo "SOURCE_VERSION_MAJOR=$SOURCE_VERSION_MAJOR" >>$GITHUB_OUTPUT
 
       - name: Generate output image ref
         id: gen_image_ref
@@ -277,4 +238,25 @@ jobs:
           IMAGE_FULL="${LOWERCASE_REGISTRY}/${LOWERCASE_IMAGE}"
           for tag in ${TAGS_TO_SIGN}; do
             cosign sign -y --key env://COSIGN_PRIVATE_KEY $IMAGE_FULL:$tag
+          done
+
+  check:
+    name: Check all builds successful
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [build_push]
+    steps:
+      - name: Check Jobs
+        env:
+          JOBS: ${{ toJson(needs) }}
+        run: |
+          echo "Job status:"
+          echo $JOBS | jq -r 'to_entries[] | " - \(.key): \(.value.result)"'
+
+          for i in $(echo $JOBS | jq -r 'to_entries[] | .value.result'); do
+            if [ "$i" != "success" ] && [ "$i" != "skipped" ]; then
+              echo ""
+              echo "Status check not okay!"
+              exit 1
+            fi
           done
