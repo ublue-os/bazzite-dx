@@ -87,9 +87,9 @@ jobs:
           # First method: `skopeo inspect` and annotations.
           
           SOURCE_VERSION=$(
-                skopeo inspect --no-tags --raw \
+                skopeo inspect --no-tags --raw --config \
                 "docker://ghcr.io/${org}/${BASE_IMAGE}:${IMAGE_SOURCE_TAG}" | \
-                jq -r '.annotations["org.opencontainers.image.version"]'
+                jq -r '.config.Labels["org.opencontainers.image.version"]'
           )
           if [[ -z $SOURCE_VERSION ]]; then
             echo "::error::$SOURCE_VERSION was not fetched correctly: $SOURCE_VERSION=${$SOURCE_VERSION}"
