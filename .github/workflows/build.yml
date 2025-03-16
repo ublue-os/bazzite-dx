@@ -91,6 +91,10 @@ jobs:
                 "docker://ghcr.io/${org}/${BASE_IMAGE}:${IMAGE_SOURCE_TAG}" | \
                 jq -r '.annotations["org.opencontainers.image.version"]'
           )
+          if [[ -z $SOURCE_VERSION ]]; then
+            echo "::error::$SOURCE_VERSION was not fetched correctly: $SOURCE_VERSION=${$SOURCE_VERSION}"
+            exit 1
+          fi
           echo "SOURCE_VERSION=$SOURCE_VERSION" >>$GITHUB_OUTPUT
           
           SOURCE_VERSION_MAJOR=$([[ ${SOURCE_VERSION} =~ ^(.*-)?([[:digit:]]+) ]] && echo "${BASH_REMATCH[-1]}")
