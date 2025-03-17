@@ -3,11 +3,28 @@ set -xeuo pipefail
 
 dnf5 install -y \
     android-tools \
+    bcc \
+    bpftop \
+    bpftrace \
+    flatpak-builder \
+    nicstat \
+    numactl \
     openrgb \
+    p7zip-plugins \
+	p7zip \
+    podman-compose \
+    podman-machine \
+    podman-tui \
+    python3-ramalama \ 
     qemu-kvm \
     restic \
-    rclone
-
+    rclone \
+    sysprof \
+    tiptop \ 
+    tracecmd \
+    udica \ 
+    umoci 
+    
 dnf5 install --enable-repo="copr:copr.fedorainfracloud.org:ublue-os:packages" -y \
   ublue-setup-services
 
