@@ -1,6 +1,9 @@
 #!/usr/bin/bash
 set -xeuo pipefail
 
+#FIXME: Remove whenever gpg stuff gets fixed
+dnf5 -y downgrade dnf5
+
 dnf5 install -y \
     android-tools \
     bcc \
