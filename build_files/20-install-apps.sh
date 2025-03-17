@@ -21,7 +21,7 @@ dnf5 install -y \
     restic \
     rclone \
     sysprof \
-    tiptop \ 
+    tiptop \
     tracecmd \
     udica \
     umoci \
