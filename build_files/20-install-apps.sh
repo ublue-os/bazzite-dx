@@ -6,11 +6,24 @@ dnf5 -y downgrade dnf5
 
 dnf5 install -y \
     android-tools \
+    bcc \
+    bpftop \
+    bpftrace \
+    flatpak-builder \
+    nicstat \
+    numactl \
     openrgb \
+    p7zip-plugins \
+    podman-machine \
+    podman-tui \
+    python3-ramalama \
     qemu-kvm \
     restic \
-    rclone
-
+    rclone \
+    sysprof \
+    tiptop \
+    zsh
+    
 dnf5 install --enable-repo="copr:copr.fedorainfracloud.org:ublue-os:packages" -y \
   ublue-setup-services
 
