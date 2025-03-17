@@ -22,7 +22,6 @@ dnf5 install -y \
     rclone \
     sysprof \
     tiptop \
-    tracecmd \
     zsh
     
 dnf5 install --enable-repo="copr:copr.fedorainfracloud.org:ublue-os:packages" -y \
