@@ -23,8 +23,6 @@ dnf5 install -y \
     sysprof \
     tiptop \
     tracecmd \
-    udica \
-    umoci \
     zsh
     
 dnf5 install --enable-repo="copr:copr.fedorainfracloud.org:ublue-os:packages" -y \
