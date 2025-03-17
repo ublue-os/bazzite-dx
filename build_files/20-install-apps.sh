@@ -23,7 +23,7 @@ dnf5 install -y \
     sysprof \
     tiptop \ 
     tracecmd \
-    udica \ 
+    udica \
     umoci \
     zsh
     
