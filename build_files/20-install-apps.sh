@@ -11,8 +11,6 @@ dnf5 install -y \
     numactl \
     openrgb \
     p7zip-plugins \
-    p7zip \
-    podman-compose \
     podman-machine \
     podman-tui \
     python3-ramalama \ 
