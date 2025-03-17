@@ -16,7 +16,7 @@ dnf5 install -y \
     p7zip-plugins \
     podman-machine \
     podman-tui \
-    python3-ramalama \ 
+    python3-ramalama \
     qemu-kvm \
     restic \
     rclone \
