@@ -9,6 +9,9 @@ log() {
 
 log "Starting system cleanup"
 
+# repo management
+sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/vscode.repo
+
 # Remove autostart files
 rm /etc/skel/.config/autostart/steam.desktop
 
