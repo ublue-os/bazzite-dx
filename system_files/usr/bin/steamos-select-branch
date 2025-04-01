@@ -1,5 +1,0 @@
-#!/usr/bin/bash
-
-# As this is running on a standard Linux install
-# state this is not applicable
-echo "Not applicable for this OS"

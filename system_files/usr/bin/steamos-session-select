@@ -1,6 +1,0 @@
-#!/usr/bin/bash
-
-# Shutting down Steam will return to the terminal,
-# desktop environment or the login screen (display manager)
-# depending on where Steam was launched.
-/usr/bin/steam -shutdown
