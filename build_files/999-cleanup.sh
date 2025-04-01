@@ -9,9 +9,6 @@ log() {
 
 log "Starting system cleanup"
 
-# Remove autostart files
-rm /etc/skel/.config/autostart/steam.desktop
-
 # Clean package manager cache
 dnf5 clean all
 
