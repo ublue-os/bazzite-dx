@@ -1,6 +1,0 @@
-#!/usr/bin/bash
-
-# Do nothing, assuming that the timezone will be set
-# when installing Linux or configured separately
-# from the terminal or desktop environment
-exit 0

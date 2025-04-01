@@ -1,8 +1,0 @@
-#!/usr/bin/bash
-
-# Exit immediately on error and throw an error
-# when using undefined variables
-set -eu
-
-# Run the steamos-update script
-exec /usr/bin/steamos-update "$0"

@@ -1,6 +1,0 @@
-#!/usr/bin/bash
-
-# Steam client updates are managed separately,
-# so in this case return exit code 7 stating
-# no system updates.
-exit 7

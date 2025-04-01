@@ -1,7 +1,0 @@
-#!/usr/bin/bash
-
-# As this is running on a standard Linux install
-# state that no updates configured for this bios
-# and exit
-echo "No updates configured for this bios"
-exit 0

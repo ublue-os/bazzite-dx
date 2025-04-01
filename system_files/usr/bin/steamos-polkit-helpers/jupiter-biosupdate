@@ -1,8 +1,0 @@
-#!/usr/bin/bash
-
-# Exit immediately on error and throw an error
-# when using undefined variables
-set -eu
-
-# Run the jupiter-biosupdate script
-exec /usr/bin/jupiter-biosupdate "$0"

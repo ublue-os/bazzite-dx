@@ -12,8 +12,6 @@ dnf5 install -y \
     flatpak-builder \
     nicstat \
     numactl \
-    openrgb \
-    p7zip-plugins \
     podman-machine \
     podman-tui \
     python3-ramalama \
@@ -23,7 +21,7 @@ dnf5 install -y \
     sysprof \
     tiptop \
     zsh
-    
+
 dnf5 install --enable-repo="copr:copr.fedorainfracloud.org:ublue-os:packages" -y \
   ublue-setup-services
 
