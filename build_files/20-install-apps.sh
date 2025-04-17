@@ -21,7 +21,7 @@ dnf5 install -y \
     zsh
 
 dnf5 install --enable-repo="copr:copr.fedorainfracloud.org:ublue-os:packages" -y \
-  ublue-setup-services
+    ublue-setup-services
 
 # Adding repositories should be a LAST RESORT. Contributing to Terra or `ublue-os/packages` is much preferred
 # over using random coprs. Please keep this in mind when adding external dependencies.
@@ -33,13 +33,21 @@ dnf5 config-manager setopt vscode.enabled=0
 # seems to be broken on newer rpm security policies.
 dnf5 config-manager setopt vscode.gpgcheck=0
 dnf5 install --nogpgcheck --enable-repo="vscode" -y \
-  code
+    code
 
+docker_pkgs=(
+    containerd.io
+    docker-buildx-plugin
+    docker-ce
+    docker-ce-cli
+    docker-compose-plugin
+)
 dnf5 config-manager addrepo --from-repofile="https://download.docker.com/linux/fedora/docker-ce.repo"
 dnf5 config-manager setopt docker-ce-stable.enabled=0
-dnf5 install --enable-repo="docker-ce-stable" -y \
-  containerd.io \
-  docker-buildx-plugin \
-  docker-ce \
-  docker-ce-cli \
-  docker-compose-plugin
+dnf5 install -y "${docker_pkgs[@]}" || {
+    # Use test packages if docker pkgs is not available for f42
+    if (($(lsb_release -sr) == 42)); then
+        echo "::info::Missing docker packages in f42, falling back to test repos..."
+        dnf5 install -y --enablerepo="docker-ce-test" "${docker_pkgs[@]}"
+    fi
+}
