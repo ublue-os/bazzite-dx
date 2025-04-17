@@ -1,0 +1,82 @@
+#!/usr/bin/bash
+
+if [ ! -d $HOME/.local/share/Steam ]; then
+  # Set up steam with the bootstrap before starting it, this allows steam to run for the first time even with no network access
+  if [[ -f "/usr/share/gamescope-session-plus/bootstrap_steam.tar.gz" ]]; then
+      mkdir -p ~/.local/share
+      tar xf /usr/share/gamescope-session-plus/bootstrap_steam.tar.gz -C ~/.local/share
+  fi
+fi
+
+VIDEO_STARTUP="/usr/share/ublue-os/bazzite/bazzite.webm"
+VIDEO_SUSPEND="/usr/share/ublue-os/bazzite/bazzite-suspend.webm"
+SKIP_VIDEOS=false
+
+# Install Bazzite's Steam Game Mode Startup & Suspend Videos
+mkdir -p $HOME/.local/share/Steam/config/uioverrides/movies
+
+# Check for the no video flag
+if [ -f $HOME/.local/share/Steam/config/uioverrides/movies/bazzite_novideo ]; then
+  SKIP_VIDEOS=true
+fi
+
+# Check for the Animation Changer plugin, if it exists then they probably don't want us.
+if [ -f $HOME/homebrew/plugins/SDH-AnimationChanger/main.py ]; then
+  SKIP_VIDEOS=true
+fi
+
+if ! $SKIP_VIDEOS; then
+
+  LOCATION_STARTUP=$HOME/.local/share/Steam/config/uioverrides/movies/deck_startup.webm
+  LOCATION_SUSPEND=$HOME/.local/share/Steam/config/uioverrides/movies/steam_os_suspend.webm
+  LOCATION_SUSPEND_OLD=$HOME/.local/share/Steam/config/uioverrides/movies/deck-suspend-animation.webm
+  LOCATION_THROBBER=$HOME/.local/share/Steam/config/uioverrides/movies/steam_os_suspend_from_throbber.webm
+  LOCATION_THROBBER_OLD=$HOME/.local/share/Steam/config/uioverrides/movies/deck-suspend-animation-from-throbber.webm
+
+  if ! cmp --silent $VIDEO_STARTUP $LOCATION_STARTUP; then
+    cp $VIDEO_STARTUP $LOCATION_STARTUP
+  fi
+
+  if ! cmp --silent $VIDEO_SUSPEND $LOCATION_SUSPEND; then
+    cp $VIDEO_SUSPEND $LOCATION_SUSPEND
+  fi
+
+  if ! cmp --silent $VIDEO_SUSPEND $LOCATION_SUSPEND_OLD; then
+    cp $VIDEO_SUSPEND $LOCATION_SUSPEND_OLD
+  fi
+
+  if ! cmp --silent $VIDEO_SUSPEND $LOCATION_THROBBER; then
+    cp $VIDEO_SUSPEND $LOCATION_THROBBER
+  fi
+
+  if ! cmp --silent $VIDEO_SUSPEND $LOCATION_THROBBER_OLD; then
+    cp $VIDEO_SUSPEND $LOCATION_THROBBER_OLD
+  fi
+
+fi
+
+# File toggle to override default Steam Deck flag behavior
+DECK_OVERRIDE_FLAG="$HOME/.config/bazzite/disable_steamdeck_flag"
+
+switcheroo_state="$(switcherooctl list)"
+DGPU_OPTION=""
+# If we're running this on a dGPU in a multi-gpu AMD/Intel system, apply a workaround for the blank Steam window bug
+if [[ $(echo "${switcheroo_state}" | grep -o 'Device:' | wc -l) -gt 1 ]]; then
+  # TODO: Check if -system-composer is needed with nvidia >=555 driver
+  if ! grep -Pq 'Name:\s+NVIDIA' <<< "$switcheroo_state"; then
+    DGPU_OPTION="-system-composer"
+  fi
+fi
+unset -v switcheroo_state
+
+if [[ "$XDG_SESSION_TYPE" == "wayland" ]]; then
+  # https://github.com/Supreeeme/extest
+  # Extest is a drop in replacement for the X11 XTEST extension.
+  # It creates a virtual device with the uinput kernel module.
+  # It's been primarily developed for allowing the desktop functionality
+  # on the Steam Controller to work while Steam is open on Wayland.
+  # Also supports Steam Input as a whole.
+  env LD_PRELOAD=/usr/lib/extest/libextest.so /usr/bin/steam -steamdeck "$DGPU_OPTION" "$@"
+else
+  /usr/bin/steam "$DECK_OPTION" "$DGPU_OPTION" "$@"
+fi
