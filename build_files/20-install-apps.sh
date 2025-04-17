@@ -44,7 +44,7 @@ docker_pkgs=(
 )
 dnf5 config-manager addrepo --from-repofile="https://download.docker.com/linux/fedora/docker-ce.repo"
 dnf5 config-manager setopt docker-ce-stable.enabled=0
-dnf5 install -y "${docker_pkgs[@]}" || {
+dnf5 install -y --enable-repo="docker-ce-stable" "${docker_pkgs[@]}" || {
     # Use test packages if docker pkgs is not available for f42
     if (($(lsb_release -sr) == 42)); then
         echo "::info::Missing docker packages in f42, falling back to test repos..."
