@@ -57,3 +57,11 @@ dnf5 install -y --enable-repo="docker-ce-stable" "${docker_pkgs[@]}" || {
         dnf5 install -y --enablerepo="docker-ce-test" "${docker_pkgs[@]}"
     fi
 }
+
+# Load iptable_nat module for docker-in-docker.
+# See:
+#   - https://github.com/ublue-os/bluefin/issues/2365
+#   - https://github.com/devcontainers/features/issues/1235
+mkdir -p /etc/modules-load.d && cat >>/etc/modules-load.d/ip_tables.conf <<EOF
+iptable_nat
+EOF
