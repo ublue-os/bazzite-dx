@@ -2,4 +2,4 @@ images:
   - name: centos-bootc
     image: ghcr.io/ublue-os/bazzite-deck
     tag: stable
-    digest: sha256:453e03103d7a36bbc673eec203ef131b9fdaf50a29d3f90e908f94865d248606
+    digest: sha256:bd13f05f33bd1003b37ff5f3d34e031f99f28f31be1324c44e415f4556b6b45b
