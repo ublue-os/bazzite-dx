@@ -4,7 +4,7 @@
 
 This is just bazzite, but with extra developer-specific tooling, aiming to match [Bluefin DX](https://docs.projectbluefin.io/bluefin-dx/) and [Aurora DX](https://docs.getaurora.dev/guides/developer/) in functionality
 
-`bazzite-gdx` will source from here and be focused for game development. 
+[`bazzite-gdx`[(https://github.com/ublue-os/bazzite-gdx) will source from here and be focused for game development. 
 
 ## Acknowledgments
 
