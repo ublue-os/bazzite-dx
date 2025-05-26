@@ -1,0 +1,22 @@
+#!/usr/bin/bash
+
+set -eo pipefail
+
+if ! grep -qs "^docker:" </etc/group; then
+  # Check if the docker group is available in etc,
+  # if not, check if it is available in usr/etc
+  if ! grep -qs "^docker:" </usr/etc/group; then
+    # docker group is not available in none of the group files
+    echo "Docker group is not available in /etc/group nor /usr/etc/group. Aborting..."
+    exit 1
+  else
+    # if so, add it to etc.
+    grep "^docker:" </usr/etc/group >>/etc/group
+  fi
+fi
+
+# Add regular users to docker group
+while read -r user; do
+  usermod -a -G docker "$user" &&
+    echo "User '$user' was added successfully to 'docker' group"
+done < <(getent passwd | awk -F: '$3 >= 1000 && $3 < 65534 { print $1 }')
