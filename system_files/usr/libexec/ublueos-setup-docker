@@ -2,6 +2,9 @@
 
 set -eo pipefail
 
+# TODO (@Zeglius): 
+#   Remove this whenever https://github.com/docker/docker-ce-packaging/commit/8c5e99fd383b461151ef0f1e1875d1801a175c80
+#   gets released.
 if ! grep -qs "^docker:" </etc/group; then
   # Check if the docker group is available in etc,
   # if not, check if it is available in usr/etc
