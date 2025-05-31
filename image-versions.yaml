@@ -2,4 +2,4 @@ images:
   - name: bazzite-deck
     image: ghcr.io/ublue-os/bazzite-deck
     tag: stable
-    digest: sha256:5bc4b25d7370bb2cb9a5fe3fe319b0363ebaf695db5fdcd7dc6ea8721b186c07
+    digest: sha256:a6ec32f4e53e20a4a24f6b7d67d0dcd618ee49a6976ac78c71751b85ad66fb1a
