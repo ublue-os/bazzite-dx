@@ -2,11 +2,11 @@
 
 set -eo pipefail
 
-BTRFS_TARGET_DIR="$(
+BTRFS_TARGET_DIR="${BTRFS_TARGET_DIR:-$(
     dir=$(podman system info --format '{{.Store.GraphRoot}}' | sed 's|/storage$||')
     mkdir -p "$dir"
     echo "$dir"
-)"
+)}"
 # Options used to mount
 BTRFS_MOUNT_OPTS=${BTRFS_MOUNT_OPTS:-"compress-force=zstd:2"}
 # Location where the loopback file will be placed.
