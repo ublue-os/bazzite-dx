@@ -22,7 +22,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   build_push:
     name: Build and push image
     runs-on: ubuntu-24.04
@@ -60,7 +59,7 @@ jobs:
       #     remove-codeql: true
 
       - name: Mount BTRFS for podman storage
-        uses: Zeglius/btrfs-container-storage@main
+        uses: ublue-os/container-storage-action@main
 
       - name: Get current date
         id: date
@@ -83,10 +82,10 @@ jobs:
           set -x
           # SOURCE_VERSION_MAJOR must be a number
           declare -i SOURCE_VERSION_MAJOR=0
-          
+
           # There are some ways to get the major release from an image.
           # First method: `skopeo inspect` and annotations.
-          
+
           SOURCE_VERSION=$(
                 skopeo inspect --no-tags --raw --config \
                 "docker://ghcr.io/${org}/${BASE_IMAGE}:${IMAGE_SOURCE_TAG}" | \
@@ -97,16 +96,16 @@ jobs:
             exit 1
           fi
           echo "SOURCE_VERSION=$SOURCE_VERSION" >>$GITHUB_OUTPUT
-          
+
           SOURCE_VERSION_MAJOR=$([[ ${SOURCE_VERSION} =~ ^(.*-)?([[:digit:]]+) ]] && echo "${BASH_REMATCH[-1]}")
           _status=$?
           unset -v _tag
-          
+
           if [[ $_status -ne 0 ]] || [[ -z ${SOURCE_VERSION_MAJOR} ]] || (( SOURCE_VERSION_MAJOR <= 0 )); then
             echo "::error::SOURCE_VERSION_MAJOR was not fetched correctly: SOURCE_VERSION_MAJOR=${SOURCE_VERSION_MAJOR}"
             exit 1
           fi
-          
+
           echo "SOURCE_VERSION_MAJOR=$SOURCE_VERSION_MAJOR" >>$GITHUB_OUTPUT
 
       - name: Generate output image ref
