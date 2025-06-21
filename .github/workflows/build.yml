@@ -60,7 +60,7 @@ jobs:
       #     remove-codeql: true
 
       - name: Mount BTRFS for podman storage
-        run: ${{ github.workspace }}/.github/workflows/mount_btrfs.sh
+        use: Zeglius/btrfs-container-storage@main
 
       - name: Get current date
         id: date
