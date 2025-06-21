@@ -4,7 +4,57 @@
 
 This is just bazzite, but with extra developer-specific tooling, aiming to match [Bluefin DX](https://docs.projectbluefin.io/bluefin-dx/) and [Aurora DX](https://docs.getaurora.dev/dx/aurora-dx-intro) in functionality
 
-[`bazzite-gdx`](https://github.com/ublue-os/bazzite-gdx) will source from here and be focused for game development. 
+[`bazzite-gdx`](https://github.com/ublue-os/bazzite-gdx) will source from here and be focused for game development.
+
+## Installation
+
+To rebase an existing Bazzite installation to Bazzite DX, use one of the following commands based on your current variant:
+
+### Desktop Variants
+
+**For KDE Plasma (default Bazzite):**
+```bash
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx:stable
+```
+
+**For GNOME:**
+```bash
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-gnome:stable
+```
+
+### NVIDIA Variants
+
+**For KDE Plasma with NVIDIA:**
+```bash
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-nvidia-open:stable
+```
+
+**For GNOME with NVIDIA:**
+```bash
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-gnome-nvidia-open:stable
+```
+
+### Handheld & HTPC Variants
+
+**For KDE:**
+```bash
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-deck:stable
+```
+
+**For HTPCs with NVIDIA GPU:**
+```bash
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-deck-nvidia:stable
+```
+
+### ⚠️ Important Desktop Environment Warning
+
+**Do not switch between GNOME and KDE variants!** If you are currently running:
+- **GNOME** (bazzite-gnome*): Only use the `-gnome` variants above
+- **KDE Plasma** (standard bazzite): Only use the variants without `-gnome` in the name
+
+Switching between desktop environments via rebase can break your installation and may require a complete reinstall.
+
+After running the rebase command, reboot your system to complete the installation. 
 
 ## Acknowledgments
 
