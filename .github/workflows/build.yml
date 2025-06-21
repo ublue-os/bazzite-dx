@@ -60,6 +60,9 @@ jobs:
         with:
           remove-codeql: true
 
+      - name: Mount BTRFS for podman storage
+        run: ${{ github.workspace }}/.github/workflows/mount_btrfs.sh
+
       - name: Get current date
         id: date
         run: |
