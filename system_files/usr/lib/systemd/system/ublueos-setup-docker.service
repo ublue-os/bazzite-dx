@@ -1,0 +1,9 @@
+[Unit]
+Description=Setup docker group
+Before=multi-user.target
+
+[Service]
+ExecStart=/usr/libexec/ublueos-setup-docker
+
+[Install]
+WantedBy=basic.target
