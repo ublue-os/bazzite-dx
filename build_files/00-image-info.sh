@@ -3,7 +3,7 @@
 set -eoux pipefail
 
 IMAGE_INFO="/usr/share/ublue-os/image-info.json"
-IMAGE_REF="ostree-image-signed:docker://ghcr.io/$IMAGE_VENDOR/$IMAGE_NAME"
+IMAGE_REF="ostree-image-signed:docker://ghcr.io/$SOURCE_ORG/$IMAGE_NAME"
 
 # image-info File
 sed -i 's/"image-name": [^,]*/"image-name": "'"$IMAGE_NAME"'"/' $IMAGE_INFO
