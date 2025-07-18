@@ -17,7 +17,7 @@ sed -i "s/^VARIANT_ID=.*/VARIANT_ID=$IMAGE_NAME/" /usr/lib/os-release
 if [[ "$IMAGE_NAME" != *"gnome"* ]]; then
     sed -i "s|^Website=.*|Website=https://dev.bazzite.gg|" /etc/xdg/kcm-about-distrorc
     if [[ "$IMAGE_NAME" != *"nvidia"* ]]; then
-        sed -i "s/^Variant=.*/Variant=Developper Experience/" /etc/xdg/kcm-about-distrorc
+        sed -i "s/^Variant=.*/Variant=Developer Experience/" /etc/xdg/kcm-about-distrorc
     else
         sed -i "s/^Variant=.*/Variant=Developper Experience (NVIDIA)/" /etc/xdg/kcm-about-distrorc
     fi
