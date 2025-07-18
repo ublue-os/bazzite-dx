@@ -23,6 +23,7 @@ dnf5 install -y \
 # Remove -deck specific changes to allow for login screens
 rm /etc/sddm.conf.d/steamos.conf
 rm /etc/sddm.conf.d/virtualkbd.conf
+rm /usr/share/gamescope-session-plus/bootstrap_steam.tar.gz
 systemctl disable bazzite-autologin.service
 
 if [[ "$IMAGE_NAME" == *gnome* ]]; then
