@@ -19,6 +19,6 @@ if [[ "$IMAGE_NAME" != *"gnome"* ]]; then
     if [[ "$IMAGE_NAME" != *"nvidia"* ]]; then
         sed -i "s/^Variant=.*/Variant=Developer Experience/" /etc/xdg/kcm-about-distrorc
     else
-        sed -i "s/^Variant=.*/Variant=Developper Experience (NVIDIA)/" /etc/xdg/kcm-about-distrorc
+        sed -i "s/^Variant=.*/Variant=Developer Experience (NVIDIA)/" /etc/xdg/kcm-about-distrorc
     fi
 fi
