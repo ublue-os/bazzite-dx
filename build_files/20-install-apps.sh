@@ -25,7 +25,7 @@ rm /etc/sddm.conf.d/steamos.conf
 rm /etc/sddm.conf.d/virtualkbd.conf
 systemctl disable bazzite-autologin.service
 
-if [[ "$IMAGE_NAME" == *-gnome* ]]; then
+if [[ "$IMAGE_NAME" == *gnome* ]]; then
     dnf5 remove -y \
         sddm
 
