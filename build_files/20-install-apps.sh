@@ -1,12 +1,6 @@
 #!/usr/bin/bash
 set -xeuo pipefail
 
-mkdir -p /usr/share/gamescope-session-plus/
-curl -Lo /usr/share/gamescope-session-plus/bootstrap_steam.tar.gz https://large-package-sources.nobaraproject.org/bootstrap_steam.tar.gz
-dnf5 install --enable-repo="copr:copr.fedorainfracloud.org:bazzite-org:bazzite" -y \
-    gamescope-session-plus \
-    gamescope-session-steam
-
 dnf5 install -y \
     android-tools \
     bcc \
@@ -25,6 +19,20 @@ dnf5 install -y \
     sysprof \
     tiptop \
     zsh
+
+# Remove -deck specific changes to allow for login screens
+rm -f /etc/sddm.conf.d/steamos.conf
+rm -f /etc/sddm.conf.d/virtualkbd.conf
+rm -f /usr/share/gamescope-session-plus/bootstrap_steam.tar.gz
+systemctl disable bazzite-autologin.service
+
+if [[ "$IMAGE_NAME" == *gnome* ]]; then
+    dnf5 remove -y \
+        sddm
+
+    systemctl enable gdm.service
+fi
+
 
 dnf5 install --enable-repo="copr:copr.fedorainfracloud.org:ublue-os:packages" -y \
     ublue-setup-services
