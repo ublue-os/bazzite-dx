@@ -10,8 +10,6 @@ This is just bazzite, but with extra developer-specific tooling, aiming to match
 
 To rebase an existing Bazzite installation to Bazzite DX, use one of the following commands based on your current variant:
 
-### Desktop Variants
-
 **For KDE Plasma (default Bazzite):**
 ```bash
 rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx:stable
@@ -32,28 +30,6 @@ rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-nvidia-
 **For GNOME with NVIDIA:**
 ```bash
 rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-gnome-nvidia-open:stable
-```
-
-### Handheld & HTPC Variants
-
-**For KDE:**
-```bash
-rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-deck:stable
-```
-
-**For GNOME:**
-```bash
-rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-deck-gnome:stable
-```
-
-**For KDE with NVIDIA GPU:**
-```bash
-rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-deck-nvidia:stable
-```
-
-**For GNOME with NVIDIA GPU:**
-```bash
-rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-deck-nvidia-gnome:stable
 ```
 
 ### ⚠️ Important Desktop Environment Warning
