@@ -4,6 +4,14 @@ on:
   merge_group:
   pull_request:
   workflow_dispatch:
+    inputs:
+      # Run with this periodically to analyze the image again
+      # As package drift will make the plan eventually non-ideal
+      # (existing users will have to redownload most of the image)
+      fresh-rechunk:
+        description: 'Clear rechunk history'
+        type: boolean
+        default: false
 
 env:
   IMAGE_NAME: "${{ github.event.repository.name }}" # the name of the image produced by this build, matches repo names
@@ -154,47 +162,13 @@ jobs:
           # Postfix image name with -custom to make it a little more descriptive
           # Syntax: https://docs.github.com/en/actions/learn-github-actions/expressions#format
           image: ${{ env.IMAGE_NAME }}
-          tags: ${{ steps.metadata.outputs.tags }}
+          tags: "${{ steps.metadata.outputs.tags }} raw-img"
           labels: ${{ steps.metadata.outputs.labels }}
           oci: false
           build-args: |
             BASE_IMAGE=ghcr.io/${{ env.SOURCE_ORG }}/${{ matrix.base_image }}:${{ env.IMAGE_SOURCE_TAG || 'latest' }}
             IMAGE_NAME=${{ env.IMAGE_NAME }}
             IMAGE_VENDOR=${{ github.repository_owner }}
-
-      # Rechunk is a script that we use on Universal Blue to make sure there isnt a single huge layer when your image gets published.
-      # This does not make your image faster to download, just provides better resumability and fixes a few errors.
-      # Documentation for Rechunk is provided on their github repository at https://github.com/hhd-dev/rechunk
-      # You can enable it by uncommenting the following lines:
-      # - name: Run Rechunker
-      #   id: rechunk
-      #   uses: hhd-dev/rechunk@f153348d8100c1f504dec435460a0d7baf11a9d2 # v1.1.1
-      #   with:
-      #     rechunk: 'ghcr.io/hhd-dev/rechunk:v1.0.1'
-      #     ref: "localhost/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}"
-      #     prev-ref: "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}"
-      #     skip_compression: true
-      #     version: ${{ env.CENTOS_VERSION }}
-      #     labels: ${{ steps.metadata.outputs.labels }} # Rechunk strips out all the labels during build, this needs to be reapplied here with newline separator
-
-      # This is necessary so that the podman socket can find the rechunked image on its storage
-      # - name: Load in podman and tag
-      #   run: |
-      #     IMAGE=$(podman pull ${{ steps.rechunk.outputs.ref }})
-      #     sudo rm -rf ${{ steps.rechunk.outputs.output }}
-      #     for tag in ${{ steps.metadata.outputs.tags }}; do
-      #       podman tag $IMAGE ${{ env.IMAGE_NAME }}:$tag
-      #     done
-
-      # These `if` statements are so that pull requests for your custom images do not make it publish any packages under your name without you knowing
-      # They also check if the runner is on the default branch so that things like the merge queue (if you enable it), are going to work
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
-        if: github.event_name != 'pull_request'
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       # Workaround bug where capital letters in your GitHub username make it impossible to push to GHCR.
       # https://github.com/macbre/push-to-ghcr/issues/12
@@ -207,6 +181,55 @@ jobs:
           set -x
           echo "registry=${IMAGE_REGISTRY,,}" >> $GITHUB_OUTPUT
           echo "image=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
+
+      # Generate the previous image reference used by the Rechunker
+      - name: Generate previous reference
+        id: generate-prev-ref
+        shell: bash
+        run: |
+          if [ "${{ github.event.inputs.fresh-rechunk }}" == "true" ]; then
+            IMAGEREF=""
+          else
+            IMAGEREF="${{ steps.lowercase.outputs.registry }}/${{ steps.lowercase.outputs.image }}:${{ env.IMAGE_SOURCE_TAG || 'latest' }}"
+          fi
+
+          echo "ref=${IMAGEREF}" >> $GITHUB_OUTPUT
+
+          echo "Generated the following:"
+          cat $GITHUB_OUTPUT
+
+      # Rechunk is a script that we use on Universal Blue to make sure there isnt a single huge layer when your image gets published.
+      # This does not make your image faster to download, just provides better resumability and fixes a few errors.
+      # Documentation for Rechunk is provided on their github repository at https://github.com/hhd-dev/rechunk
+      # You can enable it by uncommenting the following lines:
+      - name: Run Rechunker
+        id: rechunk
+        uses: hhd-dev/rechunk@ded27feba22df48134eece2c66ba0fca1289ff40 # v1.2.3
+        with:
+          rechunk: 'ghcr.io/hhd-dev/rechunk:v1.2.3'
+          ref: "raw-img"
+          prev-ref: "${{ steps.generate-prev-ref.outputs.ref }}"
+          version: ${{ steps.fetch_source_meta.outputs.SOURCE_VERSION }}
+          labels: ${{ steps.metadata.outputs.labels }} # Rechunk strips out all the labels during build, this needs to be reapplied here with newline separator
+
+      # This is necessary so that the podman socket can find the rechunked image on its storage
+      - name: Load in podman and tag
+        run: |
+          IMAGE=$(podman pull ${{ steps.rechunk.outputs.ref }})
+          sudo rm -rf ${{ steps.rechunk.outputs.output }}
+          for tag in ${{ steps.metadata.outputs.tags }}; do
+            podman tag $IMAGE ${{ env.IMAGE_NAME }}:$tag
+          done
+
+      # These `if` statements are so that pull requests for your custom images do not make it publish any packages under your name without you knowing
+      # They also check if the runner is on the default branch so that things like the merge queue (if you enable it), are going to work
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push To GHCR
         uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2
