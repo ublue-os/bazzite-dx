@@ -24,12 +24,12 @@ rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-gnome:s
 
 **For KDE Plasma with NVIDIA:**
 ```bash
-rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-nvidia-open:stable
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-nvidia:stable
 ```
 
 **For GNOME with NVIDIA:**
 ```bash
-rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-gnome-nvidia-open:stable
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/ublue-os/bazzite-dx-gnome-nvidia:stable
 ```
 
 ### ⚠️ Important Desktop Environment Warning
