@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+
+set -eo pipefail
+
+# Add regular users to docker group
+while read -r user; do
+  if usermod -a -G docker "$user"; then
+    echo "User '$user' was added successfully to 'docker' group"
+  fi
+done < <(getent passwd | awk -F: '$3 >= 1000 && $3 < 65534 { print $1 }')
