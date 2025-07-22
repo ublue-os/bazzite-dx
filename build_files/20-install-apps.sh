@@ -20,6 +20,11 @@ dnf5 install -y \
     tiptop \
     zsh
 
+# Restore UUPD update timer and Input Remapper
+sed -i 's@^NoDisplay=true@NoDisplay=false@' /usr/share/applications/input-remapper-gtk.desktop
+systemctl enable input-remapper.service
+systemctl enable uupd.timer
+
 # Remove -deck specific changes to allow for login screens
 rm -f /etc/sddm.conf.d/steamos.conf
 rm -f /etc/sddm.conf.d/virtualkbd.conf
