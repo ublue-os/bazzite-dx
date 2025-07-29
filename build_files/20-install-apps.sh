@@ -18,6 +18,7 @@ dnf5 install -y \
     rclone \
     sysprof \
     tiptop \
+    usbmuxd \
     zsh
 
 # Restore UUPD update timer and Input Remapper
