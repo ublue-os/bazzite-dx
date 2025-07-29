@@ -19,6 +19,7 @@ dnf5 install -y \
     sysprof \
     tiptop \
     usbmuxd \
+    libimobiledevice-utils \
     zsh
 
 # Restore UUPD update timer and Input Remapper
