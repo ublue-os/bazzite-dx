@@ -51,4 +51,4 @@ dx-group:
         usermod -aG $GROUP_ADD $USER
     done
 
-    echo "Reboot system and log back in to use docker, and serial connections."
+    echo "Reboot system and log back in to use docker and serial connections."
