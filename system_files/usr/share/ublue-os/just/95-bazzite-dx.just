@@ -6,13 +6,15 @@ install-fonts:
     echo "Installing extra fonts..."
     brew bundle --file=/usr/share/ublue-os/homebrew/bazzite-dx-fonts.Brewfile
 
+# Sourced from Aurora
+
 # alias for install-jetbrains-toolbox
 jetbrains-toolbox:
     @ujust install-jetbrains-toolbox
 
 # Install JetBrains Toolbox | https://www.jetbrains.com/toolbox-app/
 install-jetbrains-toolbox:
-    #!/usr/bin/env bash
+    #!/usr/bin/bash
     pushd "$(mktemp -d)"
     echo "Get latest JetBrains Toolbox version"
     # Get the json with latest releases
@@ -29,3 +31,24 @@ install-jetbrains-toolbox:
     mv jetbrains-toolbox-"${BUILD_VERSION}"/* $HOME/.local/share/JetBrains/ToolboxApp/
     echo "Launching JetBrains Toolbox"
     $HOME/.local/share/JetBrains/ToolboxApp/bin/jetbrains-toolbox &
+
+
+# Configure docker, container manager, serial permissions
+dx-group:
+    #!/usr/bin/pkexec bash
+    append_group() {
+        local group_name="$1"
+        if ! grep -q "^$group_name:" /etc/group; then
+            echo "Appending $group_name to /etc/group"
+            grep "^$group_name:" /usr/lib/group | sudo tee -a /etc/group > /dev/null
+        fi
+    }
+
+    GROUPS_ADD=("docker" "dialout")
+
+    for GROUP_ADD in "${GROUPS_ADD[@]}" ; do
+        append_group $GROUP_ADD
+        usermod -aG $GROUP_ADD $USER
+    done
+
+    echo "Reboot system and log back in to use docker, and serial connections."
