@@ -10,10 +10,10 @@ install-fonts:
 
 # alias for install-jetbrains-toolbox
 jetbrains-toolbox:
-    @ujust install-jetbrains-toolbox
+    @ujust install-jetbrains-toolbox-for-real
 
 # Install JetBrains Toolbox | https://www.jetbrains.com/toolbox-app/
-install-jetbrains-toolbox:
+install-jetbrains-toolbox-for-real:
     #!/usr/bin/bash
     pushd "$(mktemp -d)"
     echo "Get latest JetBrains Toolbox version"
