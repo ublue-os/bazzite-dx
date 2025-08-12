@@ -25,7 +25,7 @@ GAMEMODE_CONFIG=$(
     --field="Max FPS in frame limiter: ":NUM "60" \
     --field="Window width:":NUM 1280 \
     --field="Window height:":NUM 720 \
-    --field="Enable HDR (if hardware supports it)":CHK
+    --field="Enable HDR (hardware must support it)":CHK
     )
 
 # Split config into values
