@@ -3,6 +3,7 @@
 yad --title="Warning" \
     --text="This is not an intended way to use Steam Gamemode." \
     --image="/usr/share/icons/hicolor/scalable/places/steamdeck-le.svg" \
+    --button="OK" \
     --form --field="":LBL \
     --field="
     * Steam will be restarted once configuration is done.
@@ -19,6 +20,7 @@ GAMEMODE_CONFIG=$(
     yad --title="Configure Gamemode" \
     --text="Please configure Nested Gamemode" \
     --image="/usr/share/icons/hicolor/scalable/places/steamdeck.svg" \
+    --button="Launch Gamemode" \
     --form --separator="," \
     --field="Max FPS in frame limiter: ":NUM "60" \
     --field="Window width:":NUM 1280 \
