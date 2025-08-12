@@ -16,7 +16,7 @@ GAMESCOPE_CMD="gamescope -e --mangoapp --adaptive-sync --force-grab-cursor"
 
 # Configure nested gamemode
 GAMEMODE_CONFIG=$(
-    yad --title="Configure nested Steam Gamemode" \
+    yad --title="Configure Gamemode" \
     --text="Please configure Nested Gamemode" \
     --image="/usr/share/icons/hicolor/scalable/places/steamdeck.svg" \
     --form --separator="," \
