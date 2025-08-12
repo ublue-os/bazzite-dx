@@ -1,0 +1,46 @@
+#!/bin/bash
+# Show warning
+zenity --warning --text="This is not an intended way to use Gamemode\!
+
+* Steam must be closed before continuing
+* Some features may not work in this mode.
+* Bluetooth will be disabled by steam when gamemode starts up in nested mode
+* Moving cursor to the left and top window edges causes artifacting
+* You must close steam from the tray icon or close the window to exit gamemode"
+
+# Configure nested gamemode
+GAMEMODE_CONFIG=$(zenity --forms --add-entry="Max FPS (default: 60)" --add-entry="Width (default: 1280)" --add-entry="Height (default: 720)" --text="Configure nested Gamemode" --separator=",")
+
+# Split config into values
+IFS=, read -r MAX_FPS GAMEMODE_WIDTH GAMEMODE_HEIGHT <<< "$GAMEMODE_CONFIG"
+
+# Set config or use defaults
+MAX_FPS=${MAX_FPS:-}
+if [ -n "$MAX_FPS" ]; then
+    MAX_FPS="-r $MAX_FPS"
+fi
+GAMEMODE_WIDTH=${GAMEMODE_WIDTH:-1280}
+GAMEMODE_HEIGHT=${GAMEMODE_HEIGHT:-720}
+
+# Setup socket for gamescope
+# Create run directory file for startup and stats sockets
+tmpdir="$([[ -n ${XDG_RUNTIME_DIR+x} ]] && mktemp -p "$XDG_RUNTIME_DIR" -d -t gamescope.XXXXXXX)"
+socket="${tmpdir:+$tmpdir/startup.socket}"
+stats="${tmpdir:+$tmpdir/stats.pipe}"
+
+# Fail early if we don't have a proper runtime directory setup
+if [[ -z $tmpdir || -z ${XDG_RUNTIME_DIR+x} ]]; then
+        echo >&2 "!! Failed to find run directory in which to create stats session sockets (is \$XDG_RUNTIME_DIR set?)"
+        exit 0
+fi
+
+# Export gamescope stats pipe file and make fifo files
+export GAMESCOPE_STATS="$stats"
+mkfifo -- "$stats"
+mkfifo -- "$socket"
+
+# Start steam in nested gamescope, emulating gamemode.
+# Certain things will not work
+# * You cannot exit steam through the UI, you must use the tray icon
+# * Not all UI elements will work due to gamescope running in nested mode (however fps limiter works)
+XKB_DEFAULT_LAYOUT=no gamescope -e --mangoapp --adaptive-sync --hdr-enabled -S stretch --force-grab-cursor -w "$GAMEMODE_WIDTH" -h "$GAMEMODE_HEIGHT" -H "$GAMEMODE_HEIGHT" $MAX_FPS -- bazzite-steam -gamepadui -steamos3 -steampal
