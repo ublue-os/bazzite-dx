@@ -1,33 +1,53 @@
 #!/bin/bash
 # Show warning
-zenity --warning --text="This is not an intended way to use Gamemode\!
+yad --title="Warning" \
+    --text="This is not an intended way to use Steam Gamemode." \
+    --image="/usr/share/icons/hicolor/scalable/places/steamdeck-le.svg" \
+    --form --field="":LBL \
+    --field="
+    * Steam will be restarted once configuration is done.
+    * Some features may not work properly in this mode.
+    * You will have to re-enable bluetooth once Nested Gamemode has started.
+    * Enable Force Composite in the Steam Gamemode developer settings to fix graphical issues.    
+    * Steam has to be closed through the tray icon.":LBL
 
-* Steam will be restarted when you close this window
-* Some features may not work in this mode.
-* Bluetooth will be disabled by steam when gamemode starts up in nested mode
-* Enable Force Composite in gamemode developer settings to fix graphical issues
-* You must close steam from the tray icon or close the window to exit gamemode"
+# Base gamescope args for gamemode
+GAMESCOPE_CMD="gamescope -e --mangoapp --adaptive-sync --force-grab-cursor"
 
 # Configure nested gamemode
-GAMEMODE_CONFIG=$(zenity --forms --add-entry="Max FPS (default: 60)" --add-entry="Width (default: 1280)" --add-entry="Height (default: 720)" --text="Configure nested Gamemode" --separator=",")
+GAMEMODE_CONFIG=$(
+    yad --title="Configure nested Steam Gamemode" \
+    --text="Please configure Nested Gamemode\nbefore continuing" \
+    --image="/usr/share/icons/hicolor/scalable/places/steamdeck.svg" \
+    --form --separator="," \
+    --field="Max FPS in frame limiter: ":NUM "60" \
+    --field="Window width:":NUM 1280 \
+    --field="Window height:":NUM 720 \
+    --field="Enable HDR (if hardware supports it)":CHK
+    )
 
 # Split config into values
-IFS=, read -r MAX_FPS GAMEMODE_WIDTH GAMEMODE_HEIGHT <<< "$GAMEMODE_CONFIG"
+IFS=, read -r MAX_FPS GAMEMODE_WIDTH GAMEMODE_HEIGHT GAMEMODE_HDR <<< "$GAMEMODE_CONFIG"
 
 # Set config or use defaults
-MAX_FPS=${MAX_FPS:-}
-if [ -n "$MAX_FPS" ]; then
-    MAX_FPS="-r $MAX_FPS"
-fi
 GAMEMODE_WIDTH=${GAMEMODE_WIDTH:-1280}
 GAMEMODE_HEIGHT=${GAMEMODE_HEIGHT:-720}
+MAX_FPS=${MAX_FPS:-0}
+if [ "$MAX_FPS" != "0" ]; then
+    GAMESCOPE_CMD+=" -r $MAX_FPS"
+fi
+if [ "$GAMEMODE_HDR" == "TRUE" ]; then
+    GAMESCOPE_CMD+=" --hdr-enabled"
+fi
 
 # Close steam before continuing
-steam +quit
-while pgrep -x steam
-do
-    sleep 1
-done
+if pgrep -x steam; then
+    steam +quit
+    while pgrep -x steam
+    do
+        sleep 1
+    done
+fi
 
 # Setup socket for gamescope
 # Create run directory file for startup and stats sockets
@@ -50,4 +70,4 @@ mkfifo -- "$socket"
 # Certain things will not work
 # * You cannot exit steam through the UI, you must use the tray icon
 # * Not all UI elements will work due to gamescope running in nested mode (however fps limiter works)
-gamescope -e --mangoapp --adaptive-sync --hdr-enabled --force-grab-cursor -w "$GAMEMODE_WIDTH" -h "$GAMEMODE_HEIGHT" -H "$GAMEMODE_HEIGHT" $MAX_FPS -- bazzite-steam -gamepadui -steamos3 -steampal
+$GAMESCOPE_CMD -w "$GAMEMODE_WIDTH" -h "$GAMEMODE_HEIGHT" -W "$GAMEMODE_WIDTH" -H "$GAMEMODE_HEIGHT" -- bazzite-steam -gamepadui -steamos3 -steampal
