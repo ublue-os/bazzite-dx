@@ -2,10 +2,10 @@
 # Show warning
 zenity --warning --text="This is not an intended way to use Gamemode\!
 
-* Steam must be closed before continuing
+* Steam will be restarted when you close this window
 * Some features may not work in this mode.
 * Bluetooth will be disabled by steam when gamemode starts up in nested mode
-* Moving cursor to the left and top window edges causes artifacting
+* Enable Force Composite in gamemode developer settings to fix graphical issues
 * You must close steam from the tray icon or close the window to exit gamemode"
 
 # Configure nested gamemode
@@ -21,6 +21,13 @@ if [ -n "$MAX_FPS" ]; then
 fi
 GAMEMODE_WIDTH=${GAMEMODE_WIDTH:-1280}
 GAMEMODE_HEIGHT=${GAMEMODE_HEIGHT:-720}
+
+# Close steam before continuing
+steam +quit
+while pgrep -x steam
+do
+    sleep 1
+done
 
 # Setup socket for gamescope
 # Create run directory file for startup and stats sockets
