@@ -9,7 +9,7 @@ yad --title="Warning" \
     * Some features may not work properly in this mode.
     * You will have to re-enable bluetooth once Nested Gamemode has started.
     * Enable Force Composite in the Steam Gamemode developer settings to fix graphical issues.    
-    * Steam has to be closed through the tray icon.":LBL
+    * Steam has to be closed through the tray icon to exit.":LBL
 
 # Base gamescope args for gamemode
 GAMESCOPE_CMD="gamescope -e --mangoapp --adaptive-sync --force-grab-cursor"
@@ -17,7 +17,7 @@ GAMESCOPE_CMD="gamescope -e --mangoapp --adaptive-sync --force-grab-cursor"
 # Configure nested gamemode
 GAMEMODE_CONFIG=$(
     yad --title="Configure nested Steam Gamemode" \
-    --text="Please configure Nested Gamemode\nbefore continuing" \
+    --text="Please configure Nested Gamemode" \
     --image="/usr/share/icons/hicolor/scalable/places/steamdeck.svg" \
     --form --separator="," \
     --field="Max FPS in frame limiter: ":NUM "60" \
