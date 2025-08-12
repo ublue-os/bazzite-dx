@@ -50,4 +50,4 @@ mkfifo -- "$socket"
 # Certain things will not work
 # * You cannot exit steam through the UI, you must use the tray icon
 # * Not all UI elements will work due to gamescope running in nested mode (however fps limiter works)
-gamescope -e --mangoapp --adaptive-sync --hdr-enabled -S stretch --force-grab-cursor -w "$GAMEMODE_WIDTH" -h "$GAMEMODE_HEIGHT" -H "$GAMEMODE_HEIGHT" $MAX_FPS -- bazzite-steam -gamepadui -steamos3 -steampal
+gamescope -e --mangoapp --adaptive-sync --hdr-enabled --force-grab-cursor -w "$GAMEMODE_WIDTH" -h "$GAMEMODE_HEIGHT" -H "$GAMEMODE_HEIGHT" $MAX_FPS -- bazzite-steam -gamepadui -steamos3 -steampal
