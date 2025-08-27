@@ -46,9 +46,8 @@ if pgrep -x steam; then
 fi
 
 # Setup socket for gamescope
-# Create run directory file for startup and stats sockets
+# Create run directory file for startup and stats pipe
 tmpdir="$([[ -n ${XDG_RUNTIME_DIR+x} ]] && mktemp -p "$XDG_RUNTIME_DIR" -d -t gamescope.XXXXXXX)"
-socket="${tmpdir:+$tmpdir/startup.socket}"
 stats="${tmpdir:+$tmpdir/stats.pipe}"
 
 # Fail early if we don't have a proper runtime directory setup
@@ -60,7 +59,6 @@ fi
 # Export gamescope stats pipe file and make fifo files
 export GAMESCOPE_STATS="$stats"
 mkfifo -- "$stats"
-mkfifo -- "$socket"
 
 # Start steam in nested gamescope, emulating gamemode.
 # Certain things will not work
