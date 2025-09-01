@@ -15,6 +15,8 @@ dnf5 install -y \
     podman-tui \
     python3-ramalama \
     qemu-kvm \
+    virt-manager \
+    edk2-ovmf \
     restic \
     rclone \
     sysprof \
