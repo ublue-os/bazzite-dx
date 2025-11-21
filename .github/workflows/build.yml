@@ -1,6 +1,9 @@
 ---
 name: Build Bazzite DX
 on:
+  repository_dispatch:
+    types:
+      - build
   merge_group:
   pull_request:
   workflow_dispatch:
