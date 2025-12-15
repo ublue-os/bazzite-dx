@@ -33,6 +33,9 @@ rm -f /usr/share/gamescope-session-plus/bootstrap_steam.tar.gz
 systemctl disable bazzite-autologin.service
 dnf5 remove -y steamos-manager
 
+# Remove -deck specific autologin to allow for selection of session in KDE settings
+rm -f /etc/sddm.conf.d/zz-steamos-autologin.conf
+
 if [[ "$IMAGE_NAME" == *gnome* ]]; then
     # Remove SDDM and re-enable GDM on GNOME builds.
     dnf5 remove -y \
