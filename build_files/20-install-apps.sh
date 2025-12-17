@@ -26,9 +26,10 @@ sed -i 's@^NoDisplay=true@NoDisplay=false@' /usr/share/applications/input-remapp
 systemctl enable input-remapper.service
 systemctl enable uupd.timer
 
-# Remove -deck specific changes to allow for login screens
+# Remove -deck specific changes to allow for login screens and session selection in settings
 rm -f /etc/sddm.conf.d/steamos.conf
 rm -f /etc/sddm.conf.d/virtualkbd.conf
+rm -f /etc/sddm.conf.d/zz-steamos-autologin.conf
 rm -f /usr/share/gamescope-session-plus/bootstrap_steam.tar.gz
 systemctl disable bazzite-autologin.service
 dnf5 remove -y steamos-manager
