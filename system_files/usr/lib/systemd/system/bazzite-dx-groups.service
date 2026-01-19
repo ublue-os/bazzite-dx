@@ -4,9 +4,6 @@ Description=Add wheel members to docker, and incus-admin groups
 [Service]
 Type=oneshot
 ExecStart=/usr/libexec/bazzite-dx-groups
-Restart=on-failure
-RestartSec=30
-StartLimitInterval=0
 
 [Install]
 WantedBy=default.target
