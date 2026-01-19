@@ -6,8 +6,9 @@ dnf5 install -y \
     bcc \
     bpftop \
     bpftrace \
-    flatpak-builder \
     ccache \
+    flatpak-builder \
+    git-subtree \
     nicstat \
     numactl \
     podman-machine \
