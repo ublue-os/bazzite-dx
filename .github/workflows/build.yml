@@ -51,14 +51,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      # # This is optional, but if you see that your builds are way too big for the runners, you can enable this by uncommenting the following lines:
-      # - name: Maximize build space
-      #   uses: ublue-os/remove-unwanted-software@cc0becac701cf642c8f0a6613bbdaf5dc36b259e # v9
-      #   with:
-      #     remove-codeql: true
+      - name: Show disk space
+        run: sudo df -h
+
+      - name: Check if /mnt is there
+        id: check_mnt
+        run: |
+          if sudo mountpoint /mnt; then
+            echo "mnt_is_there=1" >>$GITHUB_OUTPUT
+          else
+            echo "mnt_is_there=0" >>$GITHUB_OUTPUT
+          fi
+
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ steps.check_mnt.outputs.mnt_is_there == '1' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
 
       - name: Mount BTRFS for podman storage
         uses: ublue-os/container-storage-action@main
+        if: ${{ steps.check_mnt.outputs.mnt_is_there == '1' }}
 
       - name: Get current date
         id: date
