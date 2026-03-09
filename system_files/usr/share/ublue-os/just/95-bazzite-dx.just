@@ -1,31 +1,44 @@
 # vim: set ft=make :
 
-# Configure docker,incus-admin,libvirt, container manager, serial permissions
+# Show status of DX groups and virtualization setup
 [group('System')]
-dx-group:
-    #!/usr/bin/pkexec bash
-    append_group() {
-        local group_name="$1"
-        if ! grep -q "^$group_name:" /etc/group; then
-            echo "Appending $group_name to /etc/group"
-            grep "^$group_name:" /usr/lib/group | sudo tee -a /etc/group > /dev/null
-        fi
-    }
-
-    GROUPS_ADD=("docker" "incus-admin" "libvirt" "dialout")
-
-    for GROUP_ADD in "${GROUPS_ADD[@]}" ; do
-        append_group $GROUP_ADD
-        usermod -aG $GROUP_ADD {{ `id -un` }}
-    done
-
-    echo "Reboot system and log back in to use docker, libvirt, incus, and serial connections."
+dx-status:
+    #!/usr/bin/bash
+    echo "DX Group Setup Status:"
+    if [[ -f /etc/ublue/dx-groups ]]; then
+        echo "Version: $(cat /etc/ublue/dx-groups)"
+    else
+        echo "Not yet initialized or old version."
+    fi
+    echo "Current groups: $(groups)"
+    echo "System Workarounds:"
+    systemctl status libvirt-workaround.service incus-workaround.service swtpm-workaround.service --no-pager | grep "Active:"
 
 # Install fonts from brew
 install-fonts:
     #!/usr/bin/bash
     echo "Installing extra fonts..."
     brew bundle --file=/usr/share/ublue-os/homebrew/bazzite-dx-fonts.Brewfile
+
+# Install engineering tools from brew
+install-tools:
+    #!/usr/bin/bash
+    echo "Installing DX engineering tools..."
+    brew bundle --file=/usr/share/ublue-os/homebrew/bazzite-dx-tools.Brewfile
+
+# Monitor system performance with eBPF (bpftop)
+monitor-performance:
+    #!/usr/bin/bash
+    echo "Starting eBPF performance monitor (bpftop)..."
+    sudo bpftop
+
+# Quick system inventory for troubleshooting
+system-inventory:
+    #!/usr/bin/bash
+    echo "Generating system inventory for DX troubleshooting..."
+    fastfetch -c /usr/share/ublue-os/bazzite/fastfetch-dx.jsonc || echo "fastfetch-dx preset not found, using basic info:" && uname -a
+    echo "Enabled groups: $(groups)"
+    echo "Homebrew status: $(brew --version 2>/dev/null || echo 'not installed')"
 
 # Toggle default boot between Steam Game Mode (gamescope-session) and Desktop
 toggle-gamemode ACTION="":

@@ -1,9 +1,12 @@
 [Unit]
-Description=Add wheel members to docker, and incus-admin groups
+Description=Bazzite DX Groups Initialization
+ConditionPathExists=!/var/lib/bazzite-dx-groups
+After=local-fs.target
 
 [Service]
 Type=oneshot
 ExecStart=/usr/libexec/bazzite-dx-groups
+RemainAfterExit=yes
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target

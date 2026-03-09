@@ -1,26 +1,78 @@
 #!/usr/bin/bash
 set -xeuo pipefail
 
+# Load secure COPR helpers
+# shellcheck source=build_files/shared/copr-helpers.sh
+source "${CONTEXT_PATH}/build_files/shared/copr-helpers.sh"
+
 dnf5 install -y \
     android-tools \
     bcc \
     bpftop \
     bpftrace \
+    cascadia-code-fonts \
     ccache \
+    cockpit-bridge \
+    cockpit-machines \
+    cockpit-networkmanager \
+    cockpit-ostree \
+    cockpit-podman \
+    cockpit-selinux \
+    cockpit-storaged \
+    cockpit-system \
+    dbus-x11 \
+    edk2-ovmf \
     flatpak-builder \
+    genisoimage \
     git-subtree \
+    git-svn \
+    incus \
+    incus-agent \
+    iotop \
+    libvirt \
+    libvirt-nss \
+    lxc \
     nicstat \
     numactl \
+    osbuild-selinux \
+    p7zip \
+    p7zip-plugins \
+    podman-compose \
     podman-machine \
     podman-tui \
     python3-ramalama \
+    qemu \
+    qemu-char-spice \
+    qemu-device-display-virtio-gpu \
+    qemu-device-display-virtio-vga \
+    qemu-device-usb-redirect \
+    qemu-img \
     qemu-kvm \
-    restic \
+    qemu-system-x86-core \
+    qemu-user-binfmt \
+    qemu-user-static \
     rclone \
+    restic \
     sysprof \
     tiptop \
+    trace-cmd \
+    udica \
     usbmuxd \
+    util-linux-script \
+    libimobiledevice-utils \
+    virt-manager \
+    virt-v2v \
+    virt-viewer \
+    ydotool \
     zsh
+
+# rocm doesn't work well on nvidia
+if [[ ! "${IMAGE_NAME}" =~ nvidia ]]; then
+  dnf install -y \
+    rocm-hip \
+    rocm-opencl \
+    rocm-smi
+fi
 
 # Restore UUPD update timer and Input Remapper
 sed -i 's@^NoDisplay=true@NoDisplay=false@' /usr/share/applications/input-remapper-gtk.desktop
@@ -52,9 +104,11 @@ else
       /etc/xdg/kdeglobals
 fi
 
-
-dnf5 install --enable-repo="copr:copr.fedorainfracloud.org:ublue-os:packages" -y \
-    ublue-setup-services
+# DX COPR packages using isolated enablement (secure)
+echo "Installing DX COPR packages with isolated repo enablement..."
+copr_install_isolated "ublue-os/packages" "ublue-setup-services" "ublue-os-libvirt-workarounds"
+copr_install_isolated "karmab/kcli" "kcli"
+copr_install_isolated "gmaglione/podman-bootc" "podman-bootc"
 
 # Adding repositories should be a LAST RESORT. Contributing to Terra or `ublue-os/packages` is much preferred
 # over using random coprs. Please keep this in mind when adding external dependencies.

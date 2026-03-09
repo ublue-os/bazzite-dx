@@ -1,0 +1,10 @@
+# Toolset DX - Engineering and Performance
+brew "bcc"
+brew "bpftrace"
+brew "bpftop"
+brew "iotop"
+brew "nicstat"
+brew "sysprof"
+brew "trace-cmd"
+brew "kcli"
+brew "podman-tui"
