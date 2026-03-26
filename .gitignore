@@ -1,2 +1,6 @@
 cosign.key
 _build_*
+output/
+*.qcow2
+*.raw
+*.iso

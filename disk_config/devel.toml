@@ -1,0 +1,9 @@
+[[customizations.filesystem]]
+mountpoint = "/"
+minsize = "20 GiB"
+
+[[customizations.user]]
+name = "bazzite"
+description = "Bazzite User"
+password = "$6$qau6Anlc06ENjAsR$di1/1thxswyPXj0SgaNu4tQD9ZaWX.IGx0MxSUGLA6qMy/TyK2RYzKzewwgmKnLZN4KV3GYi1si47Les0rDX9/" # 'bazzite'
+groups = ["wheel"]

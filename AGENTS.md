@@ -1,70 +1,82 @@
 # Bazzite DX Copilot Instructions
 
-This document provides essential information for coding agents working with the Bazzite DX repository.
+This document provides essential technical context for AI agents and developers contributing to the Bazzite DX repository.
 
-## Repository Overview
+## Project Overview
 
-**Bazzite DX** is the developer-focused variant of Bazzite, aiming to provide the same "Developer Experience" (DX) as Bluefin DX and Aurora DX but on the Bazzite base (Steam Deck/HTPC/Desktop gaming optimized).
+**Bazzite DX** is the developer-centric variant of Bazzite. It aims to deliver a "Developer Experience" (DX) equivalent to Bluefin DX and Aurora DX while maintaining Bazzite's gaming and HTPC optimizations.
 
-- **Type**: Container-based Linux distribution build system.
-- **Base**: Fedora Linux + Bazzite infrastructure + DX tooling.
-- **Target**: Developers using Bazzite as their primary OS.
-- **Role**: **Upstream Contribution Target**. Changes here should follow uBlue-os standards for general use.
+- **Build System**: Container-native (OCI + bootc-image-builder).
+- **Core Base**: `ghcr.io/ublue-os/bazzite-deck:stable`.
+- **Primary Audience**: Software engineers using Bazzite as their daily driver.
+- **Contribution Model**: **Upstream Target**. All changes must adhere to uBlue-os image standards.
 
-## MCP Context7 Libraries
+## 🧠 Knowledge Base (MCP Context7)
 
-Use these libraries to understand the infrastructure and patterns:
+Refer to these libraries to understand upstream patterns and core infrastructure:
 
-- `/ublue-os/bazzite`: The base Bazzite project logic.
-- `/ublue-os/docs.bazzite.gg`: Official Bazzite documentation.
-- `/ublue-os/bluefin` & `/ublue-os/aurora`: Reference for DX patterns and infrastructure.
-- `/ublue-os/main`: Universal Blue main image logic.
-- `/ublue-os/packages`: uBlue custom RPM specs.
-- `/ublue-os/devcontainer`: uBlue-os developer experience container patterns.
+- `/ublue-os/bazzite`: Source image logic and Steam Deck optimizations.
+- `/ublue-os/bluefin` & `/ublue-os/aurora`: Reference implementations for DX tooling.
 - `/coreos/rpm-ostree`: Core hybrid package management logic.
-- `/bootc-dev/bootc`: Modern Bootable Container implementation for Fedora.
+- `/bootc-dev/bootc`: Bootable Container specifications and implementation.
 
-## Repository Structure
+## 📋 Repository Structure
 
-### Key Files
+### Core Configuration
 
-- `Containerfile`: Multi-stage build definition.
-- `Justfile`: Build automation recipes.
-- `image.toml`: Basic image configuration.
-- `image-versions.yaml`: Version tagging definitions.
+- `Containerfile`: Multi-stage OCI image definition.
+- `Justfile`: Task automation for builds, testing, and VM management.
+- `disk_config/devel.toml`: Configuration for local development (includes test user).
+- `disk_config/prod.toml`: Clean configuration for production/public distribution (no user injection).
+- `image-versions.yaml`: Versioning and tagging metadata.
 
-### Key Directories
+### Directories
 
-- `build_files/`: Contains the build logic.
-- `system_files/`: System-wide configurations, fonts, and themes.
+- `build_files/`: Modular build scripts (organized from `00-*` to `999-*`).
+- `system_files/`: Static configuration files overlaid onto the system root (`/`).
 
-## Key Features (Curated from AmyOS/Draft PRs)
-
-- **Virtualization Support**: Advanced recipes for VFIO, IOMMU configuration, and KVMFR found in `system_files/usr/share/ublue-os/just/84-bazzite-virt.just`.
-- **Networking Optimization**:
-  - MAC Address Randomization (AmyOS style) via `00-amyos-random-mac.conf`.
-  - Custom DNS Resolver via `00-amyos-dns.conf` for improved privacy/performance.
-- **System Preparation**: Optimized group management and app installation scripts.
-
-## Build & Validation
+## 🛠️ Development Workflow
 
 ### Essential Commands
 
 ```bash
-# Validate syntax and formatting
-pre-commit run --all-files
+# Build the OCI image and generate a local QCOW2 disk image
+just rebuild-qcow2 2>&1 | tee output/build.log
 
-# Check Just recipes
-just check
+# Launch the generated VM (with execution logs)
+just run-vm-qcow2 2>&1 | tee output/run.log
+
+# Extract FIRST BOOT logs (critical for troubleshooting atomic/bootc systems)
+ssh -p 2222 bazzite@localhost "journalctl -b 0 --no-hostname" > output/first_boot.log
+
+# Stream journal logs continuously for live debugging
+ssh -p 2222 bazzite@localhost "journalctl -f" > output/vm_stream.log
 ```
 
-## Contribution Guidelines
+## 💡 Maintenance & Troubleshooting
 
-1. **Surgical Changes**: Keep modifications minimal and focused.
-2. **DX Parity**: Align with Bluefin DX and Aurora DX patterns where possible.
-3. **Upstream Alignment**: This is a contribution target; follow uBlue-os standards.
+### Sudo Credential Caching
 
-### Attribution
+When piped to tools like `tee`, `sudo` prompts may fail to interact correctly with the terminal. Proactively cache credentials before starting long builds:
 
-AI agents must include the "Assisted-by" footer in commits:
-`Assisted-by: [Model Name] via Antigravity`
+```bash
+# Cache sudo credentials
+sudo -v
+
+# Run the build pipeline
+just rebuild-qcow2 2>&1 | tee output/build.log
+```
+
+### Full Interactive Session Logging
+
+To capture an interactive session (including password prompts) for debugging:
+
+```bash
+script -c "just rebuild-qcow2" output/session.log
+```
+
+## ✍️ Contribution Guidelines
+
+1. **Surgical Precision**: Keep changes focused and minimal to facilitate upstream merging.
+2. **Standard Alignment**: Ensure parity with Bluefin/Aurora DX patterns where applicable.
+3. **Validation**: All PRs must pass `just check` before submission.
