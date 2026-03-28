@@ -2,4 +2,16 @@ images:
   - name: bazzite-deck
     image: ghcr.io/ublue-os/bazzite-deck
     tag: stable
-    digest: sha256:650e55225942a7bc920cdc30aacfd5766e7e141a9661f3628a38e9e91b4556b5
+    digest: sha256:aa10b14e1cb11f6a5a99eeda3a73f788510b7bda295db2b5ee2710bac34fa923
+  - name: bazzite-deck-gnome
+    image: ghcr.io/ublue-os/bazzite-deck-gnome
+    tag: stable
+    digest: sha256:5261562c175a811778b8a453ded5655e32be108a7561b82c903508b196b1b0f3
+  - name: bazzite-deck-nvidia
+    image: ghcr.io/ublue-os/bazzite-deck-nvidia
+    tag: stable
+    digest: sha256:b7e0fe21557b3e15e6e0d62fd0ccef4eb40d9476072f01e3ff47aa68f0cb687b
+  - name: bazzite-deck-nvidia-gnome
+    image: ghcr.io/ublue-os/bazzite-deck-nvidia-gnome
+    tag: stable
+    digest: sha256:7f2b0beddeae112d64b15aeb29bc3660357e0958cbfc2cd52b20f7d7da15eed0

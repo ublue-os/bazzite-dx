@@ -1,26 +1,71 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:best-practices",
+    "config:best-practices"
   ],
 
+  "forkProcessing": "enabled",
+  "dependencyDashboard": true,
   "rebaseWhen": "never",
+
+  "git-submodules": {
+    "enabled": true
+  },
+
+  "regexManagers": [
+    {
+      "description": "Track digests in image-versions.yaml",
+      "fileMatch": ["^image-versions\\.yaml$"],
+      "matchStrings": [
+        "image: (?<depName>[^\\s]+)\\s+tag: (?<currentValue>[^\\s]+)\\s+digest: (?<currentDigest>sha256:[a-f0-9]+)"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
 
   "packageRules": [
     {
+      "description": "Automatically automerge pin and pinDigest updates for all dependencies to maintain stability",
+      "matchUpdateTypes": ["pin", "pinDigest"],
       "automerge": true,
-      "matchUpdateTypes": ["pin", "pinDigest"]
+      "ignoreTests": true
     },
     {
+      "description": "Disable automated container updates within GitHub workflows for security/drift prevention",
       "enabled": false,
       "matchUpdateTypes": ["digest", "pinDigest", "pin"],
       "matchDepTypes": ["container"],
-      "matchFileNames": [".github/workflows/**.yaml", ".github/workflows/**.yml"],
+      "matchFileNames": [".github/workflows/**.yaml", ".github/workflows/**.yml"]
     },
     {
+      "description": "Automerge GitHub Actions digest updates in workflows for security parity",
+      "matchDatasources": ["github-tags"],
+      "matchFileNames": [".github/workflows/**"],
+      "matchUpdateTypes": ["digest", "pinDigest"],
       "automerge": true,
+      "ignoreTests": true
+    },
+    {
+      "description": "Automatically update and automerge all upstream digests in image-versions.yaml to ensure a sync matrix build",
+      "matchFileNames": ["image-versions.yaml"],
       "matchUpdateTypes": ["digest"],
-      "matchDepNames": ["ghcr.io/ublue-os/bazzite-deck"],
+      "automerge": true,
+      "ignoreTests": true,
+      "groupName": "matrix-upstreams",
+      "commitMessagePrefix": "chore(deps): "
+    },
+    {
+      "description": "Automatically update and automerge Bazzite-Deck upstream digests in Containerfile",
+      "matchUpdateTypes": ["digest"],
+      "matchDatasources": ["docker"],
+      "matchPackageNames": [
+        "ghcr.io/ublue-os/bazzite-deck"
+      ],
+      "matchFileNames": ["Containerfile"],
+      "pinDigests": true,
+      "automerge": true,
+      "ignoreTests": true,
+      "commitMessagePrefix": "chore(deps): "
     }
   ]
 }

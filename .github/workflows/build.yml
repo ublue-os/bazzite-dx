@@ -1,24 +1,25 @@
 ---
 name: Build Bazzite DX
 on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/README.md"
   repository_dispatch:
     types:
       - build
-  merge_group:
-  pull_request:
   workflow_dispatch:
+  merge_group:
 
 env:
   IMAGE_NAME: "${{ github.event.repository.name }}" # the name of the image produced by this build, matches repo names
   IMAGE_DESC: "${{ github.event.repository.description }}"
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}" # do not edit
   ARTIFACTHUB_LOGO_URL: "https://avatars.githubusercontent.com/u/187439889?s=200&v=4"
-
-  # The tag used in the image from which we base of.
-  # ex.: ghcr.io/org/image:IMAGE_SOURCE_TAG
-  IMAGE_SOURCE_TAG: "latest"
-  SOURCE_ORG: "ublue-os"
-  SOURCE_REPO: "bazzite"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.brand_name}}-${{ inputs.stream_name }}
@@ -80,39 +81,46 @@ jobs:
           # https://linux.die.net/man/1/date
           echo "date=$(date -u +%Y\-%m\-%d\T%H\:%M\:%S\Z)" >> $GITHUB_OUTPUT
 
+      - name: Extract base image digest
+        id: extract_digest
+        shell: bash
+        run: |
+          # Use yq to extract the image + digest for the current matrix member
+          # Fallback to latest tag if not found (though Renovate should keep it synced)
+          FULL_IMAGE=$(yq '.images[] | select(.name == "${{ matrix.base_image }}") | .image + "@" + .digest' image-versions.yaml)
+          
+          if [[ -z "$FULL_IMAGE" || "$FULL_IMAGE" == "@" ]]; then
+            echo "::warning::Digest not found in image-versions.yaml for ${{ matrix.base_image }}. Falling back to ghcr.io/ublue-os/${{ matrix.base_image }}:latest"
+            FULL_IMAGE="ghcr.io/ublue-os/${{ matrix.base_image }}:latest"
+          fi
+          
+          echo "full_image=$FULL_IMAGE" >> $GITHUB_OUTPUT
+
       # OUTPUTS:
       #   - SOURCE_VERSION: version of the source image. Ex.: testing-41.20250312
       #   - SOURCE_VERSION_MAJOR: major version. Used to identify big releases. Ex.: 41
       - name: Get image major version
         id: fetch_source_meta
-        env:
-          org: ${{ env.SOURCE_ORG }}
-          IMAGE_SOURCE_TAG: ${{ env.IMAGE_SOURCE_TAG || 'latest' }}
         run: |
           set -x
           # SOURCE_VERSION_MAJOR must be a number
           declare -i SOURCE_VERSION_MAJOR=0
 
-          # There are some ways to get the major release from an image.
-          # First method: `skopeo inspect` and annotations.
-
+          # Inspect the actual matrix-specific pinned image from image-versions.yaml
           SOURCE_VERSION=$(
                 skopeo inspect --no-tags --raw --config \
-                "docker://ghcr.io/${org}/${BASE_IMAGE}:${IMAGE_SOURCE_TAG}" | \
+                "docker://${{ steps.extract_digest.outputs.full_image }}" | \
                 jq -r '.config.Labels["org.opencontainers.image.version"]'
           )
-          if [[ -z $SOURCE_VERSION ]]; then
-            echo "::error::$SOURCE_VERSION was not fetched correctly: $SOURCE_VERSION=${$SOURCE_VERSION}"
+          if [[ -z $SOURCE_VERSION || "$SOURCE_VERSION" == "null" ]]; then
+            echo "::error::SOURCE_VERSION was not fetched correctly"
             exit 1
           fi
           echo "SOURCE_VERSION=$SOURCE_VERSION" >>$GITHUB_OUTPUT
 
           SOURCE_VERSION_MAJOR=$([[ ${SOURCE_VERSION} =~ ^(.*-)?([[:digit:]]+) ]] && echo "${BASH_REMATCH[-1]}")
-          _status=$?
-          unset -v _tag
-
-          if [[ $_status -ne 0 ]] || [[ -z ${SOURCE_VERSION_MAJOR} ]] || (( SOURCE_VERSION_MAJOR <= 0 )); then
-            echo "::error::SOURCE_VERSION_MAJOR was not fetched correctly: SOURCE_VERSION_MAJOR=${SOURCE_VERSION_MAJOR}"
+          if [[ -z ${SOURCE_VERSION_MAJOR} ]] || (( SOURCE_VERSION_MAJOR <= 0 )); then
+            echo "::error::SOURCE_VERSION_MAJOR was not fetched correctly"
             exit 1
           fi
 
@@ -172,7 +180,7 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           oci: false
           build-args: |
-            BASE_IMAGE=ghcr.io/${{ env.SOURCE_ORG }}/${{ matrix.base_image }}:${{ env.IMAGE_SOURCE_TAG || 'latest' }}
+            BASE_IMAGE=${{ steps.extract_digest.outputs.full_image }}
             IMAGE_NAME=${{ env.IMAGE_NAME }}
             IMAGE_VENDOR=${{ github.repository_owner }}
 
