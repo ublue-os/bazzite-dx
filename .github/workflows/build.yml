@@ -26,21 +26,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  prepare:
+    name: Prepare Matrix
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set-matrix
+        run: |
+          # Use yq to generate a JSON array of objects from image-versions.yaml
+          # This drives the Smart Matrix, containing name and tested status
+          MATRIX=$(yq -o=json -I=0 '.images' image-versions.yaml | tr -d '\n')
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+
   build_push:
     name: Build and push image
+    needs: prepare
     runs-on: ubuntu-24.04
 
     strategy:
       fail-fast: false
       matrix:
-        base_image:
-          - bazzite-deck
-          - bazzite-deck-gnome
-          - bazzite-deck-nvidia-gnome
-          - bazzite-deck-nvidia
+        image: ${{ fromJSON(needs.prepare.outputs.matrix) }}
 
     env:
-      BASE_IMAGE: ${{ matrix.base_image }}
+      BASE_IMAGE: ${{ matrix.image.name }}
 
     permissions:
       contents: read
@@ -87,11 +98,11 @@ jobs:
         run: |
           # Use yq to extract the image + digest for the current matrix member
           # Fallback to latest tag if not found (though Renovate should keep it synced)
-          FULL_IMAGE=$(yq '.images[] | select(.name == "${{ matrix.base_image }}") | .image + "@" + .digest' image-versions.yaml)
+          FULL_IMAGE=$(yq '.images[] | select(.name == "${{ matrix.image.name }}") | .image + "@" + .digest' image-versions.yaml)
           
           if [[ -z "$FULL_IMAGE" || "$FULL_IMAGE" == "@" ]]; then
-            echo "::warning::Digest not found in image-versions.yaml for ${{ matrix.base_image }}. Falling back to ghcr.io/ublue-os/${{ matrix.base_image }}:latest"
-            FULL_IMAGE="ghcr.io/ublue-os/${{ matrix.base_image }}:latest"
+            echo "::warning::Digest not found in image-versions.yaml for ${{ matrix.image.name }}. Falling back to ghcr.io/ublue-os/${{ matrix.image.name }}:latest"
+            FULL_IMAGE="ghcr.io/ublue-os/${{ matrix.image.name }}:latest"
           fi
           
           echo "full_image=$FULL_IMAGE" >> $GITHUB_OUTPUT
@@ -140,12 +151,16 @@ jobs:
           # This generates all the tags for your image, you can add custom tags here too!
           # By default, it should generate "latest" and "latest.(date here)".
           tags: |
-            type=raw,value=latest
-            type=raw,value=stable
-            type=raw,value=stable-${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}
-            type=raw,value=stable-${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}.{{date 'YYYYMMDD'}}
-            type=raw,value=${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}
-            type=raw,value=${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}.{{date 'YYYYMMDD'}}
+            type=raw,value=latest,enable=${{ matrix.image.tested == true }}
+            type=raw,value=stable,enable=${{ matrix.image.tested == true }}
+            type=raw,value=stable-${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }},enable=${{ matrix.image.tested == true }}
+            type=raw,value=stable-${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}.{{date 'YYYYMMDD'}},enable=${{ matrix.image.tested == true }}
+            type=raw,value=${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }},enable=${{ matrix.image.tested == true }}
+            type=raw,value=${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}.{{date 'YYYYMMDD'}},enable=${{ matrix.image.tested == true }}
+            type=raw,value=latest-experimental,enable=${{ matrix.image.tested == false }}
+            type=raw,value=experimental,enable=${{ matrix.image.tested == false }}
+            type=raw,value=experimental-${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }},enable=${{ matrix.image.tested == false }}
+            type=raw,value=experimental-${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}.{{date 'YYYYMMDD'}},enable=${{ matrix.image.tested == false }}
             type=sha,enable=${{ github.event_name == 'pull_request' }}
             type=ref,event=pr
           labels: |

@@ -3,15 +3,124 @@ images:
     image: ghcr.io/ublue-os/bazzite-deck
     tag: stable
     digest: sha256:aa10b14e1cb11f6a5a99eeda3a73f788510b7bda295db2b5ee2710bac34fa923
+    tested: true
   - name: bazzite-deck-gnome
     image: ghcr.io/ublue-os/bazzite-deck-gnome
     tag: stable
     digest: sha256:5261562c175a811778b8a453ded5655e32be108a7561b82c903508b196b1b0f3
+    tested: true
   - name: bazzite-deck-nvidia
     image: ghcr.io/ublue-os/bazzite-deck-nvidia
     tag: stable
     digest: sha256:b7e0fe21557b3e15e6e0d62fd0ccef4eb40d9476072f01e3ff47aa68f0cb687b
+    tested: true
   - name: bazzite-deck-nvidia-gnome
     image: ghcr.io/ublue-os/bazzite-deck-nvidia-gnome
     tag: stable
     digest: sha256:7f2b0beddeae112d64b15aeb29bc3660357e0958cbfc2cd52b20f7d7da15eed0
+    tested: true
+  - name: bazzite
+    image: ghcr.io/ublue-os/bazzite
+    tag: stable
+    digest: sha256:c4082bc494f7071a6a4ae110cf17ece90ee04fa8ef1a8ed840e80ec2f02dfa6d
+    tested: false
+  - name: bazzite-nvidia-open
+    image: ghcr.io/ublue-os/bazzite-nvidia-open
+    tag: stable
+    digest: sha256:483822dac8a729c548b83ca515ca1a91e407912a938f59428d086ff52bce23c6
+    tested: false
+  - name: bazzite-nvidia
+    image: ghcr.io/ublue-os/bazzite-nvidia
+    tag: stable
+    digest: sha256:60c17ab57bce87263dee4061300fa7299b4c762932b48d2423c4dcaf3da844fe
+    tested: false
+  - name: bazzite-gnome
+    image: ghcr.io/ublue-os/bazzite-gnome
+    tag: stable
+    digest: sha256:6e7601aaf304bd6213f0d4797a6e9c4b592f14e209cc32c837111c148a30874a
+    tested: false
+  - name: bazzite-gnome-nvidia-open
+    image: ghcr.io/ublue-os/bazzite-gnome-nvidia-open
+    tag: stable
+    digest: sha256:5550921cdbf98ba3c5b1464ec48f7d305f9acb783f611dfea08977e27d3edfa3
+    tested: false
+  - name: bazzite-gnome-nvidia
+    image: ghcr.io/ublue-os/bazzite-gnome-nvidia
+    tag: stable
+    digest: sha256:b3b70e1288d70b9089c3266279fa6ac614b7adb1409447d861b43058996ee40a
+    tested: false
+  - name: bazzite-asus-nvidia-open
+    image: ghcr.io/ublue-os/bazzite-asus-nvidia-open
+    tag: stable
+    digest: sha256:d1ca3ba2e77707eb56804614edc95cb19cecd2ff5a83c8cbe58cf3fc7c2ed5a5
+    tested: false
+  - name: bazzite-asus-nvidia
+    image: ghcr.io/ublue-os/bazzite-asus-nvidia
+    tag: stable
+    digest: sha256:3a3d8a1a45e4c3055a1d205efd2b54bc780343ce93e9356522c343a8c3bcd4d9
+    tested: false
+  - name: bazzite-gnome-asus-nvidia-open
+    image: ghcr.io/ublue-os/bazzite-gnome-asus-nvidia-open
+    tag: stable
+    digest: sha256:f5e91597834faf3c6c69a792a459bc5b59b2b6e001c86105509dac0ea2cf6b8c
+    tested: false
+  - name: bazzite-gnome-asus-nvidia
+    image: ghcr.io/ublue-os/bazzite-gnome-asus-nvidia
+    tag: stable
+    digest: sha256:41feb38060fda916fcfff1c96ddc7db8cdce6ca90f441229cbb8c73fd535b97d
+    tested: false
+  - name: bazzite-surface-nvidia-open
+    image: ghcr.io/ublue-os/bazzite-surface-nvidia-open
+    tag: stable
+    digest: sha256:fc6b7c426e9fcdb7ffc5572011dfea0e1fb5cf0fe566d7885bb67fd0360063f0
+    tested: false
+  - name: bazzite-budgie
+    image: ghcr.io/ublue-os/bazzite-budgie
+    tag: stable
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    tested: false
+  - name: bazzite-budgie-asus
+    image: ghcr.io/ublue-os/bazzite-budgie-asus
+    tag: stable
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    tested: false
+  - name: bazzite-deck-budgie
+    image: ghcr.io/ublue-os/bazzite-deck-budgie
+    tag: stable
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    tested: false
+  - name: bazzite-budgie-surface
+    image: ghcr.io/ublue-os/bazzite-budgie-surface
+    tag: stable
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    tested: false
+  - name: bazzite-ally-budgie
+    image: ghcr.io/ublue-os/bazzite-ally-budgie
+    tag: stable
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    tested: false
+  - name: bazzite-budgie-nvidia
+    image: ghcr.io/ublue-os/bazzite-budgie-nvidia
+    tag: stable
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    tested: false
+  - name: bazzite-budgie-asus-nvidia
+    image: ghcr.io/ublue-os/bazzite-budgie-asus-nvidia
+    tag: stable
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    tested: false
+  - name: bazzite-budgie-surface-nvidia
+    image: ghcr.io/ublue-os/bazzite-budgie-surface-nvidia
+    tag: stable
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    tested: false
+  - name: bazzite-framegame-budgie
+    image: ghcr.io/ublue-os/bazzite-framegame-budgie
+    tag: stable
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    tested: false
+  - name: bazzite-gnome-surface-nvidia-open
+    image: ghcr.io/ublue-os/bazzite-gnome-surface-nvidia-open
+    tag: stable
+    digest: sha256:1b2661d771b52fa30ac4091b7ee422e90939571cd3ad0960fd5107367310cb15
+    tested: false
