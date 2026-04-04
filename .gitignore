@@ -4,3 +4,5 @@ output/
 *.qcow2
 *.raw
 *.iso
+/.bluebuild*/
+/.bluebuild-scripts_*

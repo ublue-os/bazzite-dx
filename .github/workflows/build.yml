@@ -99,12 +99,12 @@ jobs:
           # Use yq to extract the image + digest for the current matrix member
           # Fallback to latest tag if not found (though Renovate should keep it synced)
           FULL_IMAGE=$(yq '.images[] | select(.name == "${{ matrix.image.name }}") | .image + "@" + .digest' image-versions.yaml)
-          
+
           if [[ -z "$FULL_IMAGE" || "$FULL_IMAGE" == "@" ]]; then
             echo "::warning::Digest not found in image-versions.yaml for ${{ matrix.image.name }}. Falling back to ghcr.io/ublue-os/${{ matrix.image.name }}:latest"
             FULL_IMAGE="ghcr.io/ublue-os/${{ matrix.image.name }}:latest"
           fi
-          
+
           echo "full_image=$FULL_IMAGE" >> $GITHUB_OUTPUT
 
       # OUTPUTS:
@@ -140,7 +140,7 @@ jobs:
       - name: Generate output image ref
         id: gen_image_ref
         run: |
-          echo "IMAGE_NAME=${BASE_IMAGE/bazzite/bazzite-dx}" | sed 's/-deck//' | tee -a "$GITHUB_ENV"
+          echo "IMAGE_NAME=${BASE_IMAGE/bazzite/bazzite-dx}" | tee -a "$GITHUB_ENV"
 
       # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
       # The metadata by itself is not going to do anything, you choose if you want your image to be on ArtifactHub or not.
@@ -263,10 +263,10 @@ jobs:
       # to consume. For more details, review the image signing section of the README.
       - name: Install Cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && (secrets.SIGNING_SECRET != '')
 
       - name: Sign container image
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && (secrets.SIGNING_SECRET != '')
         env:
           LOWERCASE_REGISTRY: ${{ steps.lowercase.outputs.registry }}
           LOWERCASE_IMAGE: ${{ steps.lowercase.outputs.image }}

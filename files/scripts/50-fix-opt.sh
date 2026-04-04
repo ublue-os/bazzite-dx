@@ -4,7 +4,7 @@ set -euo pipefail
 trap '[[ $BASH_COMMAND != echo* ]] && [[ $BASH_COMMAND != log* ]] && echo "+ $BASH_COMMAND"' DEBUG
 
 log() {
-  echo "=== $* ==="
+	echo "=== $* ==="
 }
 
 log "Starting /opt directory fix"

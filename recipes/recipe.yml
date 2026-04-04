@@ -1,0 +1,140 @@
+---
+# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
+name: bazzite-dx
+description: Developer Experience (DX) layer for Bazzite. Matrix-ready and Universal.
+
+base-image: ghcr.io/ublue-os/bazzite-deck
+image-version: stable
+
+modules:
+  # ── 1. Static System Files ─────────────────────────────────────────────────
+  # Injects: /etc/modules-load.d/ip_tables.conf, ublue just recipes, fastfetch, and homebrew files.
+  - type: files
+    files:
+      - source: system
+        destination: /
+
+  # ── 2. Developer Environment Core (DX Layer) ────────────────────────────────
+  # Consolidated DX setup following the uBlue Standard (Aurora/Bluefin Pattern).
+  # Focus: Virtualization, Containers, Kernel Debugging, and System Tooling.
+  - type: rpm-ostree
+    repos:
+      - https://download.docker.com/linux/fedora/docker-ce.repo
+      - https://packages.microsoft.com/yumrepos/vscode/config.repo
+    install:
+      # Containers & DX Tools (Official Repos)
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+      - code
+      # Virtualization Stack (uBlue Standard)
+      - libvirt
+      - libvirt-nss
+      - virt-manager
+      - virt-viewer
+      - virt-v2v
+      - edk2-ovmf
+      - qemu
+      - qemu-kvm
+      - qemu-img
+      - qemu-char-spice
+      - qemu-device-display-virtio-gpu
+      - qemu-device-display-virtio-vga
+      - qemu-device-usb-redirect
+      - qemu-system-x86-core
+      - qemu-user-binfmt
+      - qemu-user-static
+      - swtpm
+      - swtpm-tools
+      # Monitoring & Kernel Debugging (uBlue Standard)
+      - bcc
+      - bpftop
+      - bpftrace
+      - iotop
+      - nicstat
+      - numactl
+      - sysprof
+      - tiptop
+      - trace-cmd
+      - udica
+      - osbuild-selinux
+      # System Tooling & Shell (uBlue Standard)
+      - android-tools
+      - cascadia-code-fonts
+      - cockpit-bridge
+      - cockpit-machines
+      - cockpit-networkmanager
+      - cockpit-ostree
+      - cockpit-podman
+      - cockpit-selinux
+      - cockpit-storaged
+      - cockpit-system
+      - dbus-x11
+      - flatpak-builder
+      - genisoimage
+      - git-subtree
+      - git-svn
+      - incus
+      - incus-agent
+      - lxc
+      - podman-compose
+      - podman-machine
+      - podman-tui
+      - util-linux-script
+      - ydotool
+      - zsh
+      # Bazzite Community Inferences
+      - python3-ramalama
+      - rclone
+      - restic
+      - usbmuxd
+      - libimobiledevice-utils
+      - ccache
+
+  - type: script
+    scripts:
+      - 10-dx-layer.sh
+
+  # ── 3. Systemd Configuration ────────────────────────────────────────────────
+  # Enabling Sockets for Docker/Podman and Workarounds for Virtualization.
+  - type: systemd
+    system:
+      enabled:
+        - docker.socket
+        - podman.socket
+        - libvirt-workaround.service
+        - incus-workaround.service
+        - swtpm-workaround.service
+        - ublue-system-setup.service
+        - bazzite-dx-groups.service
+        - input-remapper.service
+        - uupd.timer
+    user:
+      enabled:
+        - ublue-user-setup.service
+
+  # ── 6. Post-Installation Orchestration ─────────────────────────────────────
+  # Complex adjustments for Variants (Steam Deck/KDE/GNOME) and HW Adjustments.
+  - type: script
+    scripts:
+      - 00-image-info.sh
+      - 20-variant-adjust.sh
+      - 50-fix-opt.sh
+      - 60-clean-base.sh
+      - 99-build-initramfs.sh
+      - 80-disable-repos.sh
+      - 90-validate-repos.sh
+      - 999-cleanup.sh
+
+  # ── 7. Image Metadata and Branding ─────────────────────────────────────────
+  - type: os-release
+    properties:
+      ID: bazzite-dx
+      NAME: "Bazzite DX"
+      PRETTY_NAME: "Bazzite Developer Experience"
+      DEFAULT_HOSTNAME: bazzite-dx
+
+  # ── 8. Security Signing ─────────────────────────────────────────────────────
+  - type: signing

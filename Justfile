@@ -1,253 +1,249 @@
 export repo_organization := env("GITHUB_REPOSITORY_OWNER", "ublue-os")
-export image_name := env("IMAGE_NAME", "bazzite-dx")
+export default_image := env("IMAGE_NAME", "bazzite-deck")
 export default_tag := env("DEFAULT_TAG", "latest")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
-export SUDO_DISPLAY := if `if [ -n "${DISPLAY:-}" ] || [ -n "${WAYLAND_DISPLAY:-}" ]; then echo true; fi` == "true" { "true" } else { "false" }
-export SUDOIF := if `id -u` == "0" { "" } else if SUDO_DISPLAY == "true" { "sudo --askpass" } else { "sudo" }
 export PODMAN := if path_exists("/usr/bin/podman") == "true" { env("PODMAN", "/usr/bin/podman") } else if path_exists("/usr/bin/docker") == "true" { env("PODMAN", "docker") } else { env("PODMAN", "exit 1 ; ") }
+export build_driver := if PODMAN =~ "docker" { "docker" } else { "podman" }
 export PULL_POLICY := if PODMAN =~ "docker" { "missing" } else { "newer" }
 
 alias build-vm := build-qcow2
-alias rebuild-vm := rebuild-qcow2
 alias run-vm := run-vm-qcow2
 
 [private]
 default:
     @just --list
 
-# Check system and development environment status
+# Check development environment and image matrix status
 [group('Just')]
 status:
     @echo "=== Image Configuration ==="
-    @echo "Project:  {{ image_name }}"
+    @echo "Default:  {{ default_image }}"
     @echo "Registry: {{ repo_organization }}"
     @echo "Tag:      {{ default_tag }}"
     @echo ""
-    @echo "=== Local Images (localhost/) ==="
-    @${PODMAN} images --filter "reference=localhost/{{ image_name }}*" --format "table {{ '{{.Repository}}' }}\t{{ '{{.Tag}}' }}\t{{ '{{.ID}}' }}\t{{ '{{.CreatedSince}}' }}"
+    @echo "=== Matrix Insights (image-versions.yaml) ==="
+    @echo "Available variants: $(yq '.images[].name' image-versions.yaml | xargs)"
+    @echo ""
+    @echo "=== Local DX Images (localhost/bazzite-dx-*) ==="
+    @${PODMAN} images --filter "reference=localhost/bazzite-dx*" --format "table {{ '{{.Repository}}' }}\t{{ '{{.Tag}}' }}\t{{ '{{.ID}}' }}\t{{ '{{.CreatedSince}}' }}"
     @echo ""
     @echo "=== Tooling Versions ==="
-    @echo "Just:    $(just --version | head -n1)"
-    @echo "Podman:  $(${PODMAN} --version)"
-    @echo ""
-    @echo "=== BIB Engine ==="
-    @echo "Image:   {{ bib_image }}"
+    @echo "Just:      $(just --version | head -n1)"
+    @echo "Podman:    $(${PODMAN} --version)"
+    @echo "BlueBuild: $(bluebuild --version 2>/dev/null || echo 'Not installed')"
 
-# Check Just Syntax
+# Check Just Syntax and BlueBuild Recipe
 [group('Just')]
 check:
     #!/usr/bin/env bash
     find . -type f -name "*.just" | while read -r file; do
-      echo "Checking syntax: $file"
-      just --unstable --fmt --check -f $file
+    	echo "Checking syntax: $file"
+    	just --unstable --fmt --check -f $file
     done
     echo "Checking syntax: Justfile"
     just --unstable --fmt --check -f Justfile
+    if [ -f recipes/recipe.yml ]; then
+      echo "Validating BlueBuild recipe..."
+      bluebuild validate recipes/recipe.yml
+    fi
+    echo "Running ShellCheck on Bash scripts..."
+    just lint
 
-# Fix Just Syntax
+# Fix Just Syntax and Format scripts
 [group('Just')]
 fix:
     #!/usr/bin/env bash
     find . -type f -name "*.just" | while read -r file; do
-      echo "Checking syntax: $file"
-      just --unstable --fmt -f $file
+    	echo "Fixing syntax: $file"
+    	just --unstable --fmt -f $file
     done
-    echo "Checking syntax: Justfile"
-    just --unstable --fmt -f Justfile || { exit 1; }
+    echo "Fixing syntax: Justfile"
+    just --unstable --fmt -f Justfile
+    echo "Formatting Bash scripts..."
+    just format
 
-# Clean Repo
+# Runs shell check on all Bash scripts (uses Container if local not found)
+[group('Utility')]
+lint:
+    #!/usr/bin/env bash
+    set -eoux pipefail
+    if ! command -v shellcheck &>/dev/null; then
+        echo "shellcheck not found locally. Running via ${PODMAN}..."
+        /usr/bin/find . -name "*.sh" -type f -not -path "./.bluebuild*" -exec ${PODMAN} run --rm -v "$PWD:/mnt:Z" docker.io/koalaman/shellcheck-alpine shellcheck /mnt/{} ';'
+    else
+        /usr/bin/find . -iname "*.sh" -type f -not -path "./.bluebuild*" -exec shellcheck "{}" ';'
+    fi
+
+# Runs shfmt on all Bash scripts (uses Container if local not found)
+[group('Utility')]
+format:
+    #!/usr/bin/env bash
+    set -eoux pipefail
+    if ! command -v shfmt &>/dev/null; then
+        echo "shfmt not found locally. Running via ${PODMAN}..."
+        /usr/bin/find . -name "*.sh" -type f -not -path "./.bluebuild*" -exec ${PODMAN} run --rm -v "$PWD:/mnt:Z" --entrypoint shfmt docker.io/mvdan/shfmt:latest -w /mnt/{} ';'
+    else
+        /usr/bin/find . -iname "*.sh" -type f -not -path "./.bluebuild*" -exec shfmt --write "{}" ';'
+    fi
+
+# Clean project artifacts
 [group('Utility')]
 clean:
     #!/usr/bin/env bash
     set -euxo pipefail
-    touch _build
-    find *_build* -exec rm -rf {} \;
+    rm -rf _build/
+    rm -rf .bluebuild/
     rm -f previous.manifest.json
     rm -f changelog.md
     rm -f output.env
     rm -rf output/
 
-# Sudo Clean Repo
-[group('Utility')]
-[private]
-sudo-clean:
-    ${SUDOIF} just clean
-
-# Build the image using the specified parameters
-[group('Build')]
-build $target_image=image_name $tag=default_tag:
+# Rebase the local system to the newly built image (local testing)
+[group('Lifecycle')]
+rebase-local target_image=default_image:
     #!/usr/bin/env bash
+    set -euo pipefail
+    rm -f /tmp/{{ target_image }}.tar || true
+    {{ PODMAN }} save localhost/{{ target_image }}:latest --format oci-archive -o /tmp/{{ target_image }}.tar
+    sudo rpm-ostree rebase ostree-unverified-image:oci-archive:/tmp/{{ target_image }}.tar
+    rm -f /tmp/{{ target_image }}.tar
+    echo "Rebase complete. Please reboot to test your local image."
 
-    # Get Version
-    ver="${tag}-$(date +%Y%m%d)"
+# Rollback last transaction (Safety)
+[group('Lifecycle')]
+rollback:
+    sudo rpm-ostree rollback
 
-    BUILD_ARGS=()
-    BUILD_ARGS+=("--build-arg" "IMAGE_NAME=${image_name}")
-    BUILD_ARGS+=("--build-arg" "IMAGE_VENDOR=${repo_organization}")
-    if [[ -z "$(git status -s)" ]]; then
-      BUILD_ARGS+=("--build-arg" "SHA_HEAD_SHORT=$(git rev-parse --short HEAD)")
+# Build image using BlueBuild CLI (Matrix aware)
+[group('Build')]
+build target_image=default_image tag=default_tag:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Resolve and Patch
+    BASE_IMAGE=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .image" image-versions.yaml)
+    BASE_TAG=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .tag" image-versions.yaml)
+    RECIPE_NAME=$(yq -r .name recipes/recipe.yml)
+
+    # Derived DX Name: bazzite -> bazzite-dx, bazzite-deck -> bazzite-dx-deck
+    # This ensures local tags match README documentation.
+    DX_NAME=$(echo "{{ target_image }}" | sed 's/^bazzite/bazzite-dx/')
+
+    if [ -z "${BASE_IMAGE}" ] || [ "${BASE_IMAGE}" == "null" ]; then
+    	echo "Error: Image '{{ target_image }}' not found in image-versions.yaml"
+    	exit 1
     fi
 
-    # Ensure localhost/ prefix for local builds if no registry is specified
-    full_image="${target_image}:${tag}"
-    if [[ "${full_image}" != */* ]]; then
-      full_image="localhost/${full_image}"
+    echo "Building DX Layer for ${DX_NAME} (Base: ${BASE_IMAGE}:${BASE_TAG})..."
+    mkdir -p .bluebuild
+    yq ".base-image = \"${BASE_IMAGE}\" | .image-version = \"${BASE_TAG}\"" recipes/recipe.yml > .bluebuild/build-recipe.yml
+
+    # Run build ensuring we use the same driver as PODMAN
+    bluebuild build --build-driver {{ build_driver }} --run-driver {{ build_driver }} .bluebuild/build-recipe.yml
+
+    # Tag precisely from the recipe-generated name
+    echo "Tagging localhost/${RECIPE_NAME}:latest as localhost/${DX_NAME}:{{ tag }}"
+    ${PODMAN} tag localhost/${RECIPE_NAME}:latest localhost/${DX_NAME}:{{ tag }}
+    echo "Successfully built and tagged localhost/${DX_NAME}:{{ tag }}"
+
+# Build image without using cache
+[group('Build')]
+build-nocache target_image=default_image tag=default_tag:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p .bluebuild
+    # Resolve and Patch
+    BASE_IMAGE=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .image" image-versions.yaml)
+    BASE_TAG=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .tag" image-versions.yaml)
+    RECIPE_NAME=$(yq -r .name recipes/recipe.yml)
+
+    # Derived DX Name: bazzite -> bazzite-dx, bazzite-deck -> bazzite-dx-deck
+    DX_NAME=$(echo "{{ target_image }}" | sed 's/^bazzite/bazzite-dx/')
+
+    if [ -z "${BASE_IMAGE}" ] || [ "${BASE_IMAGE}" == "null" ]; then
+    	echo "Error: Image '{{ target_image }}' not found in image-versions.yaml"
+    	exit 1
     fi
 
-    ${PODMAN} build \
-        "${BUILD_ARGS[@]}" \
-        --pull=${PULL_POLICY} \
-        --tag "${full_image}" \
-        .
+    echo "Building DX Layer (No-Cache) for ${DX_NAME} (Base: ${BASE_IMAGE}:${BASE_TAG})..."
+    yq ".base-image = \"${BASE_IMAGE}\" | .image-version = \"${BASE_TAG}\"" recipes/recipe.yml > .bluebuild/build-recipe.yml
+
+    bluebuild build --no-cache --build-driver {{ build_driver }} --run-driver {{ build_driver }} .bluebuild/build-recipe.yml
+
+    # Tag precisely from the recipe-generated name
+    echo "Tagging localhost/${RECIPE_NAME}:latest as localhost/${DX_NAME}:{{ tag }}"
+    ${PODMAN} tag localhost/${RECIPE_NAME}:latest localhost/${DX_NAME}:{{ tag }}
+    echo "Successfully built and tagged localhost/${DX_NAME}:{{ tag }}"
 
 [private]
-_rootful_load_image $target_image=image_name $tag=default_tag:
+_rootful_load_image $target_image=default_image $tag=default_tag:
     #!/usr/bin/env bash
     set -euxo pipefail
-
     if [[ -n "${SUDO_USER:-}" || "${UID}" -eq "0" ]]; then
       echo "Already root or running under sudo, no need to load image from user ${PODMAN}."
       exit 0
     fi
-
-    # Ensure localhost/ prefix for local images
-    full_image="${target_image}:${tag}"
-    if [[ "${full_image}" != */* ]]; then
-      full_image="localhost/${full_image}"
-    fi
-
-    set +e
-    resolved_tag=$(${PODMAN} inspect -t image "${full_image}" | jq -r '.[].RepoTags.[0]')
-    return_code=$?
-    set -e
-
+    full_image="localhost/${target_image}:${tag}"
     USER_IMG_ID=$(${PODMAN} images --filter reference="${full_image}" --format "'{{ '{{.ID}}' }}'")
-
-    if [[ $return_code -eq 0 ]]; then
-      # Load into Rootful ${PODMAN}
-      ID=$(${SUDOIF} ${PODMAN} images --filter reference="${full_image}" --format "'{{ '{{.ID}}' }}'")
-      if [[ "$ID" != "$USER_IMG_ID" ]]; then
-        COPYTMP=$(mktemp -p "${PWD}" -d -t _build_podman_scp.XXXXXXXXXX)
-        ${SUDOIF} TMPDIR=${COPYTMP} ${PODMAN} image scp ${UID}@localhost::"${full_image}" root@localhost::"${full_image}"
-        rm -rf "${COPYTMP}"
-      fi
+    if [ -n "$USER_IMG_ID" ]; then
+      echo "Loading ${full_image} (ID: $USER_IMG_ID) into rootful podman..."
+      COPYTMP=$(mktemp -p "${PWD}" -d -t _build_podman_scp.XXXXXXXXXX)
+      sudo TMPDIR=${COPYTMP} ${PODMAN} image scp ${UID}@localhost::"${full_image}" root@localhost::"${full_image}"
+      rm -rf "${COPYTMP}"
     else
-      # Make sure the image is present and/or up to date
-      ${SUDOIF} ${PODMAN} pull "${full_image}"
+      echo "Image ${full_image} not found in user storage."
+      sudo ${PODMAN} pull "${full_image}" || (echo "Failed to pull image. Build it first." && exit 1)
     fi
 
 [private]
 _build-bib $target_image $tag $type $config: (_rootful_load_image target_image tag)
     #!/usr/bin/env bash
     set -euo pipefail
-
     mkdir -p "output"
-
-    echo "Cleaning up previous build"
-    if [[ $type == iso ]]; then
-      sudo rm -rf "output/bootiso" || true
-    else
-      sudo rm -rf "output/${type}" || true
-    fi
-
-    args="--type ${type}"
-    args+=" --progress verbose"
-    args+=" --use-librepo=True"
-    args+=" --rootfs=btrfs"
-
-    # Ensure localhost/ prefix for local images
-    full_image="${target_image}:${tag}"
-    if [[ "${full_image}" != */* ]]; then
-      full_image="localhost/${full_image}"
-    fi
-
-    if [[ $full_image == localhost/* ]]; then
-      args+=" --local"
-    fi
-
-    sudo ${PODMAN} run \
-      --rm \
-      -it \
-      --privileged \
-      --pull=${PULL_POLICY} \
-      --net=host \
+    sudo rm -rf "output/${type}" "output/bootiso" || true
+    full_image="localhost/${target_image}:${tag}"
+    args="--type ${type} --progress verbose --use-librepo=True --rootfs=btrfs --local"
+    sudo ${PODMAN} run --rm -it --privileged --pull=${PULL_POLICY} --net=host \
       --security-opt label=type:unconfined_t \
-      -v $(pwd)/${config}:/config.toml:ro \
-      -v $(pwd)/output:/output \
+      -v $(pwd)/${config}:/config.toml:ro -v $(pwd)/output:/output \
       -v /var/lib/containers/storage:/var/lib/containers/storage \
-      "${bib_image}" \
-      ${args} \
-      "${full_image}"
-
+      "${bib_image}" ${args} "${full_image}"
     sudo chown -R $USER:$USER output/
 
-_rebuild-bib $target_image $tag $type $config: (build target_image tag) && (_build-bib target_image tag type config)
+[group('Image Builders (BIB)')]
+build-qcow2 $target_image=default_image $tag=default_tag: && (_build-bib target_image tag "qcow2" "disk_config/devel.toml")
 
 [group('Image Builders (BIB)')]
-build-qcow2 $target_image=image_name $tag=default_tag: && (_build-bib target_image tag "qcow2" "disk_config/devel.toml")
+build-raw $target_image=default_image $tag=default_tag: && (_build-bib target_image tag "raw" "disk_config/devel.toml")
 
 [group('Image Builders (BIB)')]
-build-raw $target_image=image_name $tag=default_tag: && (_build-bib target_image tag "raw" "disk_config/devel.toml")
+build-iso $target_image=default_image $tag=default_tag: && (_build-bib target_image tag "iso" "disk_config/iso.toml")
 
-[group('Image Builders (BIB)')]
-build-iso $target_image=image_name $tag=default_tag: && (_build-bib target_image tag "iso" "disk_config/iso.toml")
-
-[group('Image Builders (BIB)')]
-rebuild-qcow2 $target_image=image_name $tag=default_tag: && (_rebuild-bib target_image tag "qcow2" "disk_config/devel.toml")
-
-[group('Image Builders (BIB)')]
-rebuild-raw $target_image=image_name $tag=default_tag: && (_rebuild-bib target_image tag "raw" "disk_config/devel.toml")
-
-[group('Image Builders (BIB)')]
-rebuild-iso $target_image=image_name $tag=default_tag: && (_rebuild-bib target_image tag "iso" "disk_config/iso.toml")
-
+[private]
 _run-vm $target_image $tag $type $config:
     #!/usr/bin/env bash
     set -euxo pipefail
-
     image_file="output/${type}/disk.${type}"
-
-    if [[ $type == iso ]]; then
-      image_file="output/bootiso/install.iso"
-    fi
-
-    if [[ ! -f "${image_file}" ]]; then
-      just "build-${type}" "$target_image" "$tag"
-    fi
-
-    # Determine which port to use
+    if [[ $type == iso ]]; then image_file="output/bootiso/install.iso"; fi
+    if [[ ! -f "${image_file}" ]]; then just "build-${type}" "$target_image" "$tag"; fi
     port=8006;
-    while grep -q :${port} <<< $(ss -tunalp); do
-      port=$(( port + 1 ))
-    done
-    echo "Using Port: ${port}"
-    echo "Connect to http://localhost:${port}"
-    run_args=()
-    run_args+=(--rm --privileged)
-    run_args+=(--pull=newer)
-    run_args+=(--publish "127.0.0.1:${port}:8006")
-    run_args+=(--publish "127.0.0.1:2222:22")
-    run_args+=(--env "CPU_CORES=4")
-    run_args+=(--env "RAM_SIZE=8G")
-    run_args+=(--env "DISK_SIZE=64G")
-    # run_args+=(--env "BOOT_MODE=windows_secure")
-    run_args+=(--env "TPM=Y")
-    run_args+=(--env "GPU=Y")
-    run_args+=(--device=/dev/kvm)
-    run_args+=(--volume "${PWD}/${image_file}":"/boot.${type}")
-    run_args+=(docker.io/qemux/qemu)
-    ${PODMAN} run "${run_args[@]}" &
-    xdg-open http://localhost:${port}
+    while grep -q :${port} <<< $(ss -tunalp); do port=$(( port + 1 )); done
+    echo "Using Port: ${port}. Connect to http://localhost:${port}"
+    ${PODMAN} run --rm --privileged --pull=newer \
+      -p 127.0.0.1:${port}:8006 -p 127.0.0.1:2222:22 \
+      -e CPU_CORES=4 -e RAM_SIZE=8G -e DISK_SIZE=64G -e TPM=Y -e GPU=Y \
+      --device=/dev/kvm -v "${PWD}/${image_file}":"/boot.${type}" \
+      docker.io/qemux/qemu &
+    xdg-open http://localhost:${port} || true
     wait $!
 
 [group('VM Runners')]
-run-vm-qcow2 $target_image=image_name $tag=default_tag: && (_run-vm target_image tag "qcow2" "disk_config/devel.toml")
+run-vm-qcow2 $target_image=default_image $tag=default_tag: && (_run-vm target_image tag "qcow2" "disk_config/devel.toml")
 
 [group('VM Runners')]
-run-vm-raw $target_image=image_name $tag=default_tag: && (_run-vm target_image tag "raw" "disk_config/devel.toml")
+run-vm-raw $target_image=default_image $tag=default_tag: && (_run-vm target_image tag "raw" "disk_config/devel.toml")
 
 [group('VM Runners')]
-run-vm-iso $target_image=image_name $tag=default_tag: && (_run-vm target_image tag "iso" "disk_config/iso.toml")
+run-vm-iso $target_image=default_image $tag=default_tag: && (_run-vm target_image tag "iso" "disk_config/iso.toml")
 
 # Run a virtual machine using systemd-vmspawn
 [group('VM Runners')]
