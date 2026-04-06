@@ -1,0 +1,5 @@
+name: dx-hardening
+shortdesc: Consolidated build-time hardening, cleanup, and initramfs optimization for Bazzite-DX.
+example: |
+  - type: dx-hardening
+    source: local

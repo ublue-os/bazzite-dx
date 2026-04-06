@@ -23,12 +23,16 @@ Bazzite-DX utilizes a **Smart Matrix** architecture powered by [BlueBuild](https
 
 ## 🛠️ Core Capabilities
 
-- **Hybrid DX Stack**: Strategic placement of tools for maximum performance and stability.
-  - **Layered (rpm-ostree)**: High-performance observability (`bcc`, `bpftrace`, `bpftop`, `iotop`) and virtualization (`kcli`, `incus`, `libvirt`).
-  - **Unlayered (Homebrew)**: Visual Studio Code (`visual-studio-code-linux` cask) and high-velocity CLI suites (`eza`, `bat`, `fzf`, `zoxide`).
-- **Container Excellence**: Optimized sockets for Docker and Podman, with `podman-compose` and native system-level `podman-tui`.
-- **Professional Flatpaks**: Essential DX apps pre-installed (system-wide): `Extension Manager`, `GNOME Boxes`, `Mission Center`, and `ZapZap`.
-- **Tap Integration**: Seamless use of `ublue-os/tap` to deliver system-integrated casks without image bloat.
+- **Tiered Workstation Experience**: Activate curated toolsets via `ujust bazzite-dx <flavor>`:
+  - **`cli`**: Terminal excellence (bat, eza, fzf, zoxide, starship).
+  - **`ai`**: Modern AI workstation (Goose, llmfit, linux-mcp-server).
+  - **`cloud`**: Cloud-Native toolkit (kubectl, helm, k9s, terraform).
+- **Ready-to-Code Automation**: No manual setup for system permissions. The image automatically grants `docker`, `libvirt`, `incus`, and `dialout` access to wheel members.
+- **Hybrid DX Stack**: Strategic placement of tools for maximum performance.
+  - **Layered (OCI)**: High-performance observability (`bcc`, `bpftrace`, `bpftop`) and virtualization.
+  - **Unlayered (Homebrew)**: Visual Studio Code and high-velocity CLI suites.
+- **Always-On Typography**: Professional developer fonts (JetBrains Mono, Fira Code, Nerd Fonts) are pre-baked into the image layers.
+- **Professional Flatpaks**: Essential DX apps pre-installed system-wide.
 
 ---
 
@@ -54,11 +58,15 @@ To rebase your current Bazzite installation to the DX edition, execute the comma
 > **Rebase Command**: `rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/[IMAGE_NAME]:stable`
 
 ### 🔧 Post-Rebase Configuration
-Immediately after rebasing and rebooting, run the following command to provision your user for the DX environment:
-```bash
-ujust setup-dx-user
-```
-This adds your user to the necessary groups (`docker`, `libvirt`, `incus-admin`, etc.) without modifying the system-default files.
+
+Bazzite-DX is engineered to be **Ready-to-Code** out of the box.
+
+1. **Automatic Permissions**: After rebasing and rebooting, your user is automatically added to the necessary groups (`docker`, `libvirt`, `incus`, `dialout`). 
+2. **Workstation Flavors**: To activate your preferred developer toolset, use:
+   ```bash
+   ujust bazzite-dx <flavor>
+   ```
+   *Available flavors: `cli`, `ai`, `cloud`, `all`.*
 
 > [!CAUTION]
 > **Desktop Environment Lock**: Do not switch between GNOME and KDE variants via rebase. Always stay within the same DE family to avoid internal configuration conflicts.

@@ -1,0 +1,5 @@
+name: dx-image-info
+shortdesc: Bazzite-DX metadata orchestration, KDE branding, and workstation experience adjustments.
+example: |
+  - type: dx-image-info
+    source: local

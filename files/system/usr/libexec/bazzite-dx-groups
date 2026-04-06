@@ -11,11 +11,11 @@ mkdir -p /etc/ublue
 
 # Run script if updated
 if [[ -f $GROUP_SETUP_VER_FILE && "$GROUP_SETUP_VER" = "$GROUP_SETUP_VER_RAN" ]]; then
-  echo "Group setup has already run. Exiting..."
+  echo "Group setup has already run for version $GROUP_SETUP_VER. Exiting..."
   exit 0
 fi
 
-# Function to append a group entry to /etc/group
+# Function to append a group entry to /etc/group (Atomic /etc/group management)
 append_group() {
   local group_name="$1"
   if ! grep -q "^$group_name:" /etc/group; then
@@ -24,18 +24,28 @@ append_group() {
   fi
 }
 
-# Setup Groups
-append_group docker
-append_group incus-admin
-append_group libvirt
+# Define the list of developer-essential groups
+# These are synced with the 'ujust setup-dx-user' fallback for consistency.
+DX_GROUPS=("docker" "podman" "libvirt" "incus-admin" "dialout" "input" "video" "render" "plugdev" "adbusers")
 
-wheelarray=($(getent group wheel | cut -d ":" -f 4 | tr ',' '\n'))
-for user in $wheelarray; do
-  usermod -aG docker $user
-  usermod -aG incus-admin $user
-  usermod -aG libvirt $user
+# Ensure all target groups exist in /etc/group
+for grp in "${DX_GROUPS[@]}"; do
+  append_group "$grp"
 done
 
-# Prevent future executions
+# Provision all wheel users (administrators) with these groups
+wheel_members=$(getent group wheel | cut -d ":" -f 4 | tr ',' ' ')
+for user in $wheel_members; do
+  if id "$user" >/dev/null 2>&1; then
+    echo "Provisioning permissions for user: $user"
+    for grp in "${DX_GROUPS[@]}"; do
+      if getent group "$grp" >/dev/null; then
+        usermod -aG "$grp" "$user"
+      fi
+    done
+  fi
+done
+
+# Prevent future executions for the same version
 echo "Writing state file"
 echo "$GROUP_SETUP_VER" >"$GROUP_SETUP_VER_FILE"

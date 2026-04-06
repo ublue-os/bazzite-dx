@@ -1,0 +1,5 @@
+name: dx-verify
+shortdesc: high-fidelity system integrity auditor for Bazzite-DX.
+example: |
+  - type: dx-verify
+    source: local

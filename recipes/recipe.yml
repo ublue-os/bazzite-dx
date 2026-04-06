@@ -7,13 +7,20 @@ base-image: ghcr.io/ublue-os/bazzite-deck
 image-version: stable
 
 modules:
+  # ==========================================
+  # LAYER 1: FOUNDATION (Files & Build Core)
+  # ==========================================
   - type: files
     files:
       - source: system
         destination: /
 
+  # ==========================================
+  # LAYER 2: SYSTEM TOOLS & VIRTUALIZATION
+  # ==========================================
   - type: dnf
     repos:
+      cleanup: true
       copr:
         - karmab/kcli
         - gmaglione/podman-bootc
@@ -29,6 +36,7 @@ modules:
     repos:
       - https://download.docker.com/linux/fedora/docker-ce.repo
     install:
+      # Virtualization & Containers
       - containerd.io
       - docker-buildx-plugin
       - docker-ce
@@ -51,18 +59,7 @@ modules:
       - incus
       - incus-agent
       - lxc
-
-  - type: rpm-ostree
-    install:
-      - android-tools
-      - flatpak-builder
-      - git-subtree
-      - git-svn
-      - ccache
-      - zsh
-
-  - type: rpm-ostree
-    install:
+      # Observability & Analysis
       - bcc
       - bpftop
       - bpftrace
@@ -74,18 +71,6 @@ modules:
       - trace-cmd
       - udica
       - osbuild-selinux
-
-  - type: rpm-ostree
-    install:
-      - dbus-x11
-      - genisoimage
-      - util-linux-script
-      - ydotool
-      - python3-ramalama
-      - rclone
-      - restic
-      - usbmuxd
-      - libimobiledevice-utils
       - cockpit-bridge
       - cockpit-ws
       - cockpit-system
@@ -98,17 +83,66 @@ modules:
       - cockpit-selinux
       - pcp
       - rocm-smi
+      # Workstation Tools
+      - android-tools
+      - flatpak-builder
+      - git-subtree
+      - git-svn
+      - ccache
+      - zsh
+      - dbus-x11
+      - genisoimage
+      - util-linux-script
+      - ydotool
+      - python3-ramalama
+      - ramalama
+      - rclone
+      - restic
+      - usbmuxd
+      - libimobiledevice-utils
 
+  - type: systemd
+    system:
+      enabled:
+        - docker.socket
+        - podman.socket
+        - libvirt-workaround.service
+        - swtpm-workaround.service
+        - bazzite-dx-groups.service
+        - cockpit.socket
+        - uupd.timer
+        - input-remapper.service
+
+  # ==========================================
+  # LAYER 3: EXPERIENCE (Fonts & Initramfs)
+  # ==========================================
   - type: fonts
     fonts:
       nerd-fonts:
         - FiraCode
         - Hack
         - JetBrainsMono
+        - Meslo
+        - Noto
+        - RobotoMono
+        - SourceCodePro
+        - Ubuntu
+        - UbuntuMono
       google-fonts:
         - Inter
         - Outfit
         - Roboto
+
+  - type: initramfs
+
+  # ==========================================
+  # LAYER 4: CUSTOMIZATIONS (Scripts & Configs)
+  # ==========================================
+  - type: dx-image-info
+    source: local
+
+  - type: dx-udev
+    source: local
 
   - type: default-flatpaks
     configurations:
@@ -123,35 +157,15 @@ modules:
           - io.missioncenter.MissionCenter
           - com.rtosta.zapzap
 
-  - type: brew
+  - type: justfiles
+    include:
+      - 95-bazzite-dx.just
 
-  - type: systemd
-    system:
-      enabled:
-        - docker.socket
-        - podman.socket
-        - bazzite-dx-groups.service
-        - libvirt-workaround.service
-        - incus-workaround.service
-        - swtpm-workaround.service
-        - ublue-system-setup.service
-        - input-remapper.service
-        - cockpit.socket
-        - uupd.timer
-    user:
-      enabled:
-        - ublue-user-setup.service
-
-  - type: script
-    scripts:
-      - 00-image-info.sh
-      - 10-android-udev.sh
-      - 20-variant-adjust.sh
-      - 60-clean-base.sh
-      - 99-build-initramfs.sh
-      - 80-disable-repos.sh
-      - 90-validate-repos.sh
-      - 999-cleanup.sh
+  # ==========================================
+  # LAYER 5: HARDENING & VERIFICATION (The Polish)
+  # ==========================================
+  - type: dx-hardening
+    source: local
 
   - type: dx-verify
     source: local

@@ -138,7 +138,7 @@ build target_image=default_image tag=default_tag:
     yq ".base-image = \"${BASE_IMAGE}\" | .image-version = \"${BASE_TAG}\"" recipes/recipe.yml > .bluebuild/build-recipe.yml
 
     # Run build ensuring we use the same driver as PODMAN
-    bluebuild build --build-driver {{ build_driver }} --run-driver {{ build_driver }} .bluebuild/build-recipe.yml -vv
+    bluebuild build --build-driver {{ build_driver }} --run-driver {{ build_driver }} .bluebuild/build-recipe.yml
 
     # Tag precisely from the recipe-generated name
     echo "Tagging localhost/${RECIPE_NAME}:latest as localhost/${DX_NAME}:{{ tag }}"

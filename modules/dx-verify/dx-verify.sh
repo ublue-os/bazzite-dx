@@ -9,7 +9,7 @@ echo "::group:: === dx-verify audit starting ==="
 
 # 1. Verification of Critical Groups (sysusers.d)
 echo "Auditing security groups..."
-for group in plugdev libvirt docker; do
+for group in plugdev libvirt docker adbusers; do
 	if getent group "$group" >/dev/null; then
 		echo "OK: Group '$group' is defined."
 	else
@@ -22,9 +22,11 @@ done
 echo "Auditing hardware udev rules..."
 UDEV_FILES=(
 	"/usr/lib/udev/rules.d/51-android.rules"
+	"/usr/lib/sysusers.d/android-udev.conf"
 	"/usr/lib/modules-load.d/ip_tables.conf"
 	"/usr/lib/tmpfiles.d/opt-fix.conf"
 	"/usr/lib/systemd/system/bazzite-dx-groups.service"
+	"/usr/libexec/bazzite-dx-groups"
 )
 
 for file in "${UDEV_FILES[@]}"; do
@@ -42,6 +44,7 @@ CORE_BINARIES=(
 	"/usr/bin/docker"
 	"/usr/bin/podman"
 	"/usr/bin/kcli"
+	"/usr/bin/ramalama"
 )
 
 for binary in "${CORE_BINARIES[@]}"; do
@@ -53,7 +56,24 @@ for binary in "${CORE_BINARIES[@]}"; do
 	fi
 done
 
-# 4. Final Hardening: Ensure No Residual COPR repos
+# 4. Verification of Workstation Flavors (Brewfiles)
+echo "Auditing Workstation Brewfiles..."
+BREWFILES=(
+	"/usr/share/ublue-os/homebrew/cli.Brewfile"
+	"/usr/share/ublue-os/homebrew/ai-tools.Brewfile"
+	"/usr/share/ublue-os/homebrew/cncf.Brewfile"
+)
+
+for file in "${BREWFILES[@]}"; do
+	if [ -f "$file" ]; then
+		echo "OK: Brewfile '$file' found."
+	else
+		echo "ERROR: Workstation flavor '$file' is missing!"
+		exit 1
+	fi
+done
+
+# 5. Final Hardening: Ensure No Residual COPR repos
 # Although the 'dnf' module cleans up, we double-check /etc/yum.repos.d/
 echo "Verifying repository hygiene..."
 COPR_REPOS=$(find /etc/yum.repos.d/ -maxdepth 1 -name "*.repo" -printf "%f\n" | grep -E "copr|vscode|docker" || true)

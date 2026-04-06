@@ -1,0 +1,5 @@
+name: dx-udev
+shortdesc: Bazzite-DX udev rules for hardware access (Android ADB/Fastboot) and group management.
+example: |
+  - type: dx-udev
+    source: local
