@@ -116,63 +116,77 @@ rollback:
 
 # Build image using BlueBuild CLI (Matrix aware)
 [group('Build')]
-build target_image=default_image tag=default_tag:
+build target_image=default_image tag=default_tag: (build-recipe target_image tag)
     #!/usr/bin/env bash
     set -euo pipefail
-    # Resolve and Patch
-    BASE_IMAGE=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .image" image-versions.yaml)
-    BASE_TAG=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .tag" image-versions.yaml)
-    RECIPE_NAME=$(yq -r .name recipes/recipe.yml)
-
-    # Derived DX Name: bazzite -> bazzite-dx, bazzite-deck -> bazzite-dx-deck
-    # This ensures local tags match README documentation.
     DX_NAME=$(echo "{{ target_image }}" | sed 's/^bazzite/bazzite-dx/')
-
-    if [ -z "${BASE_IMAGE}" ] || [ "${BASE_IMAGE}" == "null" ]; then
-    	echo "Error: Image '{{ target_image }}' not found in image-versions.yaml"
-    	exit 1
-    fi
-
-    echo "Building DX Layer for ${DX_NAME} (Base: ${BASE_IMAGE}:${BASE_TAG})..."
-    mkdir -p .bluebuild
-    yq ".base-image = \"${BASE_IMAGE}\" | .image-version = \"${BASE_TAG}\"" recipes/recipe.yml > .bluebuild/build-recipe.yml
-
-    # Run build ensuring we use the same driver as PODMAN
     bluebuild build --build-driver {{ build_driver }} --run-driver {{ build_driver }} .bluebuild/build-recipe.yml
-
     # Tag precisely from the recipe-generated name
+    RECIPE_NAME=$(yq -r .name .bluebuild/build-recipe.yml)
     echo "Tagging localhost/${RECIPE_NAME}:latest as localhost/${DX_NAME}:{{ tag }}"
     ${PODMAN} tag localhost/${RECIPE_NAME}:latest localhost/${DX_NAME}:{{ tag }}
-    echo "Successfully built and tagged localhost/${DX_NAME}:{{ tag }}"
 
 # Build image without using cache
 [group('Build')]
-build-nocache target_image=default_image tag=default_tag:
+build-nocache target_image=default_image tag=default_tag: (build-recipe target_image tag)
     #!/usr/bin/env bash
     set -euo pipefail
-    mkdir -p .bluebuild
-    # Resolve and Patch
-    BASE_IMAGE=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .image" image-versions.yaml)
-    BASE_TAG=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .tag" image-versions.yaml)
-    RECIPE_NAME=$(yq -r .name recipes/recipe.yml)
-
-    # Derived DX Name: bazzite -> bazzite-dx, bazzite-deck -> bazzite-dx-deck
     DX_NAME=$(echo "{{ target_image }}" | sed 's/^bazzite/bazzite-dx/')
-
-    if [ -z "${BASE_IMAGE}" ] || [ "${BASE_IMAGE}" == "null" ]; then
-    	echo "Error: Image '{{ target_image }}' not found in image-versions.yaml"
-    	exit 1
-    fi
-
-    echo "Building DX Layer (No-Cache) for ${DX_NAME} (Base: ${BASE_IMAGE}:${BASE_TAG})..."
-    yq ".base-image = \"${BASE_IMAGE}\" | .image-version = \"${BASE_TAG}\"" recipes/recipe.yml > .bluebuild/build-recipe.yml
-
     bluebuild build --no-cache --build-driver {{ build_driver }} --run-driver {{ build_driver }} .bluebuild/build-recipe.yml
-
     # Tag precisely from the recipe-generated name
+    RECIPE_NAME=$(yq -r .name .bluebuild/build-recipe.yml)
     echo "Tagging localhost/${RECIPE_NAME}:latest as localhost/${DX_NAME}:{{ tag }}"
     ${PODMAN} tag localhost/${RECIPE_NAME}:latest localhost/${DX_NAME}:{{ tag }}
-    echo "Successfully built and tagged localhost/${DX_NAME}:{{ tag }}"
+
+# Generate build recipe with complete OCI metadata (Unified Logic)
+[private]
+build-recipe target_image tag:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Resolve and Patch
+    export BASE_IMAGE=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .image" image-versions.yaml)
+    export BASE_TAG=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .tag" image-versions.yaml)
+    export IMAGE_NAME="bazzite-dx"
+    export IMAGE_DESC="Developer Experience (DX) layer for Bazzite. Matrix-ready and Universal."
+    export ARTIFACTHUB_LOGO_URL="https://avatars.githubusercontent.com/u/120224169?s=200&v=4"
+    export REPO_OWNER=$(git remote get-url origin | sed -E 's/.*[:\/](.*)\/(.*)\.git/\1/')
+    export KERNEL_RELEASE=$(uname -r)
+    export DATE_CREATED=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+    export VERSION_FULL="${BASE_TAG}.$(date +%Y%m%d)"
+    export REVISION=$(git rev-parse HEAD 2>/dev/null || echo 'local')
+
+    if [ -z "${BASE_IMAGE}" ] || [ "${BASE_IMAGE}" == "null" ]; then
+        echo "Error: Image '{{ target_image }}' not found in image-versions.yaml"
+        exit 1
+    fi
+
+    echo "Generating build recipe for {{ target_image }} (Base: ${BASE_IMAGE}:${BASE_TAG})..."
+    mkdir -p .bluebuild
+    yq '
+      .name = env(IMAGE_NAME) |
+      .description = env(IMAGE_DESC) |
+      .base-image = env(BASE_IMAGE) |
+      .image-version = "latest" |
+      .alt-tags = (["latest", "stable", "{{ tag }}", env(BASE_TAG)] | unique) |
+      .labels."io.artifacthub.package.logo-url" = env(ARTIFACTHUB_LOGO_URL) |
+      .labels."io.artifacthub.package.readme-url" = "https://raw.githubusercontent.com/" + env(REPO_OWNER) + "/bazzite-dx/main/README.md" |
+      .labels."io.artifacthub.package.maintainers" = "[{\"name\": \"nklowns\", \"email\": \"nklowns@users.noreply.github.com\"}]" |
+      .labels."io.artifacthub.package.keywords" = "bootc,bazzite,dx,ublue,universal-blue,fedora,gaming,developer" |
+      .labels."io.artifacthub.package.deprecated" = "false" |
+      .labels."io.artifacthub.package.prerelease" = "false" |
+      .labels."containers.bootc" = "1" |
+      .labels."ostree.linux" = env(KERNEL_RELEASE) |
+      .labels."org.opencontainers.image.title" = "Bazzite DX" |
+      .labels."org.opencontainers.image.description" = env(IMAGE_DESC) |
+      .labels."org.opencontainers.image.vendor" = env(REPO_OWNER) |
+      .labels."org.opencontainers.image.licenses" = "Apache-2.0" |
+      .labels."org.opencontainers.image.source" = "https://github.com/" + env(REPO_OWNER) + "/bazzite-dx/blob/main/Containerfile" |
+      .labels."org.opencontainers.image.url" = "https://github.com/" + env(REPO_OWNER) + "/bazzite-dx" |
+      .labels."org.opencontainers.image.documentation" = "https://raw.githubusercontent.com/" + env(REPO_OWNER) + "/bazzite-dx/main/README.md" |
+      .labels."org.opencontainers.image.version" = env(VERSION_FULL) |
+      .labels."org.opencontainers.image.created" = env(DATE_CREATED) |
+      .labels."org.opencontainers.image.revision" = env(REVISION)
+    ' recipes/recipe.yml > .bluebuild/build-recipe.yml
 
 [private]
 _rootful_load_image $target_image=default_image $tag=default_tag:
