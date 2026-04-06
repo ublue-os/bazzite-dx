@@ -1,4 +1,3 @@
----
 name: Build Bazzite DX
 on:
   pull_request:
@@ -7,12 +6,12 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - "**/README.md"
+    paths-ignore: # don't rebuild if only documentation has changed
+      - "**.md"
   repository_dispatch:
     types:
       - build
-  workflow_dispatch:
+  workflow_dispatch: # allow manually triggering builds
     inputs:
       build_untested:
         description: "Build images marked as tested: false"
@@ -33,7 +32,7 @@ concurrency:
 jobs:
   prepare:
     name: Prepare Matrix
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -52,10 +51,10 @@ jobs:
 
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
 
-  build_push:
+  bluebuild:
     name: Build and push image
     needs: prepare
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
@@ -73,27 +72,7 @@ jobs:
     steps:
       # These stage versions are pinned by https://github.com/renovatebot/renovate
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Show disk space
-        run: sudo df -h
-
-      - name: Check if /mnt is there
-        id: check_mnt
-        run: |
-          if sudo mountpoint /mnt; then
-            echo "mnt_is_there=1" >>$GITHUB_OUTPUT
-          else
-            echo "mnt_is_there=0" >>$GITHUB_OUTPUT
-          fi
-
-      - name: Free Disk Space (Ubuntu)
-        if: ${{ steps.check_mnt.outputs.mnt_is_there == '1' }}
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
-
-      - name: Mount BTRFS for podman storage
-        uses: ublue-os/container-storage-action@main
-        if: ${{ steps.check_mnt.outputs.mnt_is_there == '1' }}
+        uses: actions/checkout@v4
 
       - name: Get current date
         id: date
@@ -125,9 +104,6 @@ jobs:
           echo "base_tag=$BASE_TAG" >> $GITHUB_OUTPUT
           echo "base_digest=$BASE_DIGEST" >> $GITHUB_OUTPUT
 
-      # OUTPUTS:
-      #   - SOURCE_VERSION: version of the source image. Ex.: testing-41.20250312
-      #   - SOURCE_VERSION_MAJOR: major version. Used to identify big releases. Ex.: 41
       - name: Get image major version
         id: fetch_source_meta
         run: |
@@ -269,14 +245,16 @@ jobs:
           cp recipes/recipe.yml recipes/build-recipe.yml
 
       - name: Build and Push with BlueBuild
-        uses: blue-build/github-action@v1
+        uses: blue-build/github-action@v1.11
         with:
           recipe: build-recipe.yml
-          skip_checkout: true
           cosign_private_key: ${{ secrets.SIGNING_SECRET }}
-          registry_token: ${{ secrets.GITHUB_TOKEN }}
+          registry_token: ${{ github.token }}
           pr_event_number: ${{ github.event.number }}
+          skip_checkout: true
           maximize_build_space: true
+          rechunk: false
+          build_chunked_oci: true
           # Custom build options (conditional signing)
           build_opts: "${{ secrets.SIGNING_SECRET == '' && '--no-sign' || '' }}"
 
@@ -284,7 +262,7 @@ jobs:
     name: Check all builds successful
     if: always()
     runs-on: ubuntu-latest
-    needs: [build_push]
+    needs: [bluebuild]
     steps:
       - name: Check Jobs
         env:
