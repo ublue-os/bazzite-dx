@@ -1,18 +1,50 @@
 # vim: set ft=make :
 
-# Show status of DX groups and virtualization setup
+# Skeptically verify Bazzite-DX state and virtualization readiness
 [group('System')]
 dx-status:
     #!/usr/bin/bash
-    echo "DX Group Setup Status:"
-    if [[ -f /etc/ublue/dx-groups ]]; then
-        echo "Version: $(cat /etc/ublue/dx-groups)"
+    echo "=== Bazzite-DX Architectural Audit ==="
+    echo "1. Kernel Arguments (Actual):"
+    cat /proc/cmdline | grep -iE --color "iommu|kvm|preempt" || echo "Warning: Missing IOMMU/KVM kargs in /proc/cmdline!"
+
+    echo -e "\n2. Group Membership Check:"
+    DX_GROUPS=("docker" "incus-admin" "libvirt" "dialout" "input" "video" "render" "plugdev")
+    for grp in "${DX_GROUPS[@]}"; do
+        if groups "$USER" | grep -q "\b$grp\b"; then
+            echo "[PASS] $grp"
+        else
+            echo "[FAIL] $grp (Run: ujust setup-dx-user)"
+        fi
+    done
+
+    echo -e "\n3. Homebrew Reachability:"
+    if command -v brew >/dev/null; then
+        echo "[PASS] Brew is in PATH: $(which brew)"
     else
-        echo "Not yet initialized or old version."
+        echo "[FAIL] Brew not found in PATH"
     fi
-    echo "Current groups: $(groups)"
-    echo "System Workarounds:"
-    systemctl status libvirt-workaround.service incus-workaround.service swtpm-workaround.service --no-pager | grep "Active:"
+
+# Provision the current user for DX groups (Virtualization, Containers, Hardware)
+[group('System')]
+setup-dx-user:
+    #!/usr/bin/bash
+    set -euo pipefail
+    DX_GROUPS=("docker" "incus-admin" "libvirt" "dialout" "input" "video" "render" "plugdev")
+    echo "Provisioning $USER for Developer Experience..."
+    for grp in "${DX_GROUPS[@]}"; do
+        if getent group "$grp" >/dev/null; then
+            if groups "$USER" | grep -q "\b$grp\b"; then
+                echo "Already in group: $grp"
+            else
+                sudo usermod -aG "$grp" "$USER"
+                echo "Added to group: $grp"
+            fi
+        else
+            echo "Warning: group $grp not found. Ensure you have rebased to Bazzite-DX."
+        fi
+    done
+    echo "Done! Please log out and back in for group changes to take effect."
 
 # Install fonts from brew
 install-fonts:
@@ -31,6 +63,21 @@ monitor-performance:
     #!/usr/bin/bash
     echo "Starting eBPF performance monitor (bpftop)..."
     sudo bpftop
+
+# Toggle NVIDIA Open-Source Kernel Modules (GSP Firmware)
+
+# Modern declarative implementation via bootc kargs.d
+toggle-nvidia-open:
+    #!/usr/bin/bash
+    KARGS_FILE="/usr/lib/bootc/kargs.d/05-nvidia-open.toml"
+    if [ ! -f "$KARGS_FILE" ]; then
+        echo "Enabling NVIDIA Open-Source Kernel Modules (GSP)..."
+        echo 'kargs = ["nvidia.NVreg_EnableGpuFirmware=1"]' | sudo tee "$KARGS_FILE" > /dev/null
+    else
+        echo "Disabling NVIDIA Open-Source Kernel Modules (Restoring Proprietary)..."
+        sudo rm "$KARGS_FILE"
+    fi
+    echo "Done! A system update/rebuild or reboot is required to apply changes."
 
 # Quick system inventory for troubleshooting
 system-inventory:

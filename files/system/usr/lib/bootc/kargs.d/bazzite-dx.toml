@@ -1,0 +1,12 @@
+# Bazzite-DX Specialized Kernel Arguments
+# Focused on Virtualization performance and IOMMU for DX workloads.
+# iommu=pt (Pass-Through) is the performance standard.
+# Explicit intel/amd_iommu=on ensures coverage for diverse firmware (Handhelds/eGPUs).
+
+kargs = [
+    "iommu=pt",
+    "intel_iommu=on",
+    "amd_iommu=on",
+    "kvm.nested=1",
+    "preempt=full"
+]

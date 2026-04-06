@@ -11,22 +11,24 @@
 Bazzite-DX utilizes a **Smart Matrix** architecture powered by [BlueBuild](https://blue-build.org). This allows us to maintain a single source of truth while generating **25+ specialized image variants**, including support for Handhelds (Steam Deck/Legion Go), NVIDIA GPUs, and different Desktop Environments (KDE/GNOME).
 
 - **Build System**: BlueBuild (declarative YAML-based) + GitHub Actions.
+- **Package Strategy**: **Hybrid Stratification** (Layered for Kernel-bound tools | Unlayered for User-space IDEs/CLI).
 - **Matrix Architecture**: Supports 25+ variants defined in `image-versions.yaml`.
-- **Layer Strategy**: Bazzite DX is a **layer** on top of Bazzite. The primary verification focus is the **Deck** variant family.
 - **Primary Audience**: Software engineers using Bazzite as their daily driver.
 - **Contribution Model**: **Upstream Target**. All changes must adhere to uBlue-os image standards.
 
 > [!IMPORTANT]
-> **Recommended Target**: When developing or testing, always prioritize the `bazzite-deck` base variants, as they are the only ones currently marked as `tested: true` in the matrix.
+> **Recommended Target**: Always prioritize the `bazzite-deck` variants for development, as they are the primary verified target path (`tested: true`).
 
 ---
 
 ## 🛠️ Core Capabilities
 
-- **Virtualization Stack**: Pre-configured Cockpit, Incus, and QEMU/KVM for advanced workload management.
-- **Kernel Debugging**: Deep observability with BCC, BPFTace, and sysprof available out-of-the-box.
-- **Container Excellence**: Optimized sockets for Docker and Podman, with `podman-compose` and `podman-tui` for terminal-based management.
-- **Language Support**: Seamless Homebrew integration and essential compilers (ccache, flatpak-builder).
+- **Hybrid DX Stack**: Strategic placement of tools for maximum performance and stability.
+  - **Layered (rpm-ostree)**: High-performance observability (`bcc`, `bpftrace`, `bpftop`, `iotop`) and virtualization (`kcli`, `incus`, `libvirt`).
+  - **Unlayered (Homebrew)**: Visual Studio Code (`visual-studio-code-linux` cask) and high-velocity CLI suites (`eza`, `bat`, `fzf`, `zoxide`).
+- **Container Excellence**: Optimized sockets for Docker and Podman, with `podman-compose` and native system-level `podman-tui`.
+- **Professional Flatpaks**: Essential DX apps pre-installed (system-wide): `Extension Manager`, `GNOME Boxes`, `Mission Center`, and `ZapZap`.
+- **Tap Integration**: Seamless use of `ublue-os/tap` to deliver system-integrated casks without image bloat.
 
 ---
 
@@ -51,6 +53,13 @@ To rebase your current Bazzite installation to the DX edition, execute the comma
 > [!TIP]
 > **Rebase Command**: `rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/[IMAGE_NAME]:stable`
 
+### 🔧 Post-Rebase Configuration
+Immediately after rebasing and rebooting, run the following command to provision your user for the DX environment:
+```bash
+ujust setup-dx-user
+```
+This adds your user to the necessary groups (`docker`, `libvirt`, `incus-admin`, etc.) without modifying the system-default files.
+
 > [!CAUTION]
 > **Desktop Environment Lock**: Do not switch between GNOME and KDE variants via rebase. Always stay within the same DE family to avoid internal configuration conflicts.
 
@@ -66,6 +75,7 @@ The project uses `Just` as the primary task runner.
 | `just check` | Run `shellcheck` linting and recipe syntax validation |
 | `just format` | Automatically format all Bash scripts using `shfmt` |
 | `just status` | Display the current image matrix from `image-versions.yaml` |
+| `just rebase-local` | Rebase the current system to the local build for testing |
 
 ---
 

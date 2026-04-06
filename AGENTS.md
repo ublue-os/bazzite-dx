@@ -17,12 +17,31 @@ This document provides essential technical context for AI agents and developers 
 
 Refer to these libraries to understand upstream patterns and core infrastructure:
 
-- `/ublue-os/bazzite`: Source image logic and Steam Deck optimizations.
-- `/ublue-os/bluefin` & `/ublue-os/aurora`: Reference implementations for DX tooling.
-- `blue-build.org/reference`: Main build engine documentation.
-- `/bootc-dev/bootc`: Bootable Container specifications and implementation.
+### Core Infrastructure
+- `/ublue-os/ucore`: Core uBlue infra.
+- `/blue-build/cli` & `blue-build.org/reference`: Build engine documentation.
+- `docs.fedoraproject.org/en-US/fedora-coreos`: Fedora CoreOS base.
+- `/bootc-dev/bootc`: modern bootc logic.
 
-## 📋 Repository Structure
+### Image Development & DX
+- `/ublue-os/bazzite`: Steam Deck and gaming optimizations.
+- `/ublue-os/bluefin` & `/ublue-os/aurora`: Reference DX patterns.
+- `/ublue-os/bluefin-docs`, `/ublue-os/aurora-docs`, `docs.bazzite.gg`: Manuals.
+
+### Package Management & Stratification
+- `/homebrew/brew`: Homebrew logic and CLI tool management.
+- `ublue-os/tap`: Custom homebrew-tap for system-integration casks (e.g., VSCode).
+- `/ublue-os/packages`: uBlue custom RPM specs.
+
+## 🧱 Architectural Guardrails (MANDATORY)
+
+1. **Stratum Protection**: 
+   - **Layered (Ostree)**: Performance tools (`bcc`, `bpftrace`, `kcli`) MUST stay in `recipe.yml`. They require kernel header synchronization.
+   - **Unlayered (Homebrew)**: VSCode (`visual-studio-code-linux`) and high-velocity CLI tools MUST stay in `bazzite-dx-tools.Brewfile`.
+2. **DRY Enforcement**: Do NOT duplicate packages between `recipe.yml` and `Brewfile`. If it exists in the system base (e.g., `podman-tui`), remove it from the Brewfile.
+3. **Bazaar Compliance**: Bazzite's `hooks.py` relies on VSCode being unlayered to prevent system-level update blocking.
+
+## 🛠️ Workflow Instructions
 
 ### Core Configuration
 

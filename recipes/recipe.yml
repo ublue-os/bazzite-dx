@@ -7,48 +7,62 @@ base-image: ghcr.io/ublue-os/bazzite-deck
 image-version: stable
 
 modules:
-  # ── 1. Static System Files ─────────────────────────────────────────────────
-  # Injects: /etc/modules-load.d/ip_tables.conf, ublue just recipes, fastfetch, and homebrew files.
   - type: files
     files:
       - source: system
         destination: /
 
-  # ── 2. Developer Environment Core (DX Layer) ────────────────────────────────
-  # Consolidated DX setup following the uBlue Standard (Aurora/Bluefin Pattern).
-  # Focus: Virtualization, Containers, Kernel Debugging, and System Tooling.
+  - type: dnf
+    repos:
+      copr:
+        - karmab/kcli
+        - gmaglione/podman-bootc
+        - ublue-os/packages
+    install:
+      packages:
+        - kcli
+        - podman-bootc
+        - ublue-setup-services
+        - ublue-os-libvirt-workarounds
+
   - type: rpm-ostree
     repos:
       - https://download.docker.com/linux/fedora/docker-ce.repo
-      - https://packages.microsoft.com/yumrepos/vscode/config.repo
     install:
-      # Containers & DX Tools (Official Repos)
-      - docker-ce
-      - docker-ce-cli
       - containerd.io
       - docker-buildx-plugin
+      - docker-ce
+      - docker-ce-cli
       - docker-compose-plugin
-      - code
-      # Virtualization Stack (uBlue Standard)
+      - docker-model-plugin
+      - podman-compose
+      - podman-machine
+      - podman-tui
       - libvirt
       - libvirt-nss
       - virt-manager
       - virt-viewer
       - virt-v2v
       - edk2-ovmf
-      - qemu
       - qemu-kvm
       - qemu-img
-      - qemu-char-spice
-      - qemu-device-display-virtio-gpu
-      - qemu-device-display-virtio-vga
-      - qemu-device-usb-redirect
-      - qemu-system-x86-core
-      - qemu-user-binfmt
-      - qemu-user-static
       - swtpm
       - swtpm-tools
-      # Monitoring & Kernel Debugging (uBlue Standard)
+      - incus
+      - incus-agent
+      - lxc
+
+  - type: rpm-ostree
+    install:
+      - android-tools
+      - flatpak-builder
+      - git-subtree
+      - git-svn
+      - ccache
+      - zsh
+
+  - type: rpm-ostree
+    install:
       - bcc
       - bpftop
       - bpftrace
@@ -60,81 +74,94 @@ modules:
       - trace-cmd
       - udica
       - osbuild-selinux
-      # System Tooling & Shell (uBlue Standard)
-      - android-tools
-      - cascadia-code-fonts
-      - cockpit-bridge
-      - cockpit-machines
-      - cockpit-networkmanager
-      - cockpit-ostree
-      - cockpit-podman
-      - cockpit-selinux
-      - cockpit-storaged
-      - cockpit-system
+
+  - type: rpm-ostree
+    install:
       - dbus-x11
-      - flatpak-builder
       - genisoimage
-      - git-subtree
-      - git-svn
-      - incus
-      - incus-agent
-      - lxc
-      - podman-compose
-      - podman-machine
-      - podman-tui
       - util-linux-script
       - ydotool
-      - zsh
-      # Bazzite Community Inferences
       - python3-ramalama
       - rclone
       - restic
       - usbmuxd
       - libimobiledevice-utils
-      - ccache
+      - cockpit-bridge
+      - cockpit-ws
+      - cockpit-system
+      - cockpit-ostree
+      - cockpit-podman
+      - cockpit-machines
+      - cockpit-packagekit
+      - cockpit-networkmanager
+      - cockpit-storaged
+      - cockpit-selinux
+      - pcp
+      - rocm-smi
 
-  - type: script
-    scripts:
-      - 10-dx-layer.sh
+  - type: fonts
+    fonts:
+      nerd-fonts:
+        - FiraCode
+        - Hack
+        - JetBrainsMono
+      google-fonts:
+        - Inter
+        - Outfit
+        - Roboto
 
-  # ── 3. Systemd Configuration ────────────────────────────────────────────────
-  # Enabling Sockets for Docker/Podman and Workarounds for Virtualization.
+  - type: default-flatpaks
+    configurations:
+      - notify: false
+        scope: system
+        repo:
+          url: https://dl.flathub.org/repo/flathub.flatpakrepo
+          name: flathub
+        install:
+          - com.mattjakeman.ExtensionManager
+          - org.gnome.Boxes
+          - io.missioncenter.MissionCenter
+          - com.rtosta.zapzap
+
+  - type: brew
+
   - type: systemd
     system:
       enabled:
         - docker.socket
         - podman.socket
+        - bazzite-dx-groups.service
         - libvirt-workaround.service
         - incus-workaround.service
         - swtpm-workaround.service
         - ublue-system-setup.service
-        - bazzite-dx-groups.service
         - input-remapper.service
+        - cockpit.socket
         - uupd.timer
     user:
       enabled:
         - ublue-user-setup.service
 
-  # ── 6. Post-Installation Orchestration ─────────────────────────────────────
-  # Complex adjustments for Variants (Steam Deck/KDE/GNOME) and HW Adjustments.
   - type: script
     scripts:
       - 00-image-info.sh
+      - 10-android-udev.sh
       - 20-variant-adjust.sh
-      - 50-fix-opt.sh
       - 60-clean-base.sh
       - 99-build-initramfs.sh
       - 80-disable-repos.sh
       - 90-validate-repos.sh
       - 999-cleanup.sh
 
-  # ── 7. Image Metadata and Branding ─────────────────────────────────────────
+  - type: dx-verify
+    source: local
+
   - type: os-release
     properties:
       ID: bazzite-dx
       NAME: "Bazzite DX"
       PRETTY_NAME: "Bazzite Developer Experience"
       DEFAULT_HOSTNAME: bazzite-dx
+      DOC_URL: "https://dev.bazzite.gg/"
 
-  # ── 8. Security Signing ─────────────────────────────────────────────────────
   - type: signing
