@@ -13,6 +13,11 @@ on:
     types:
       - build
   workflow_dispatch:
+    inputs:
+      build_untested:
+        description: "Build images marked as tested: false"
+        type: boolean
+        default: false
   merge_group:
 
 env:
@@ -22,7 +27,7 @@ env:
   ARTIFACTHUB_LOGO_URL: "https://avatars.githubusercontent.com/u/187439889?s=200&v=4"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.brand_name}}-${{ inputs.stream_name }}
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.build_untested || 'false' }}
   cancel-in-progress: true
 
 jobs:
@@ -36,8 +41,15 @@ jobs:
       - id: set-matrix
         run: |
           # Use yq to generate a JSON array of objects from image-versions.yaml
-          # This drives the Smart Matrix, containing name and tested status
-          MATRIX=$(yq -o=json -I=0 '.images' image-versions.yaml | tr -d '\n')
+          # Filter for tested: true unless build_untested is true
+          BUILD_UNTESTED="${{ github.event.inputs.build_untested || 'false' }}"
+
+          if [[ "$BUILD_UNTESTED" == "true" ]]; then
+            MATRIX=$(yq -o=json -I=0 '.images' image-versions.yaml | tr -d '\n')
+          else
+            MATRIX=$(yq -o=json -I=0 '.images | [.[] | select(.tested == true)]' image-versions.yaml | tr -d '\n')
+          fi
+
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
 
   build_push:
@@ -100,8 +112,9 @@ jobs:
           # Fallback to latest tag if not found (though Renovate should keep it synced)
           FULL_IMAGE=$(yq '.images[] | select(.name == "${{ matrix.image.name }}") | .image + "@" + .digest' image-versions.yaml)
 
-          if [[ -z "$FULL_IMAGE" || "$FULL_IMAGE" == "@" ]]; then
-            echo "::warning::Digest not found in image-versions.yaml for ${{ matrix.image.name }}. Falling back to ghcr.io/ublue-os/${{ matrix.image.name }}:latest"
+          # Handle empty digests or dummy 0000... digests
+          if [[ -z "$FULL_IMAGE" || "$FULL_IMAGE" == "@" || "$FULL_IMAGE" == *"@sha256:0000"* ]]; then
+            echo "::warning::Digest not found or dummy for ${{ matrix.image.name }}. Falling back to ghcr.io/ublue-os/${{ matrix.image.name }}:latest"
             FULL_IMAGE="ghcr.io/ublue-os/${{ matrix.image.name }}:latest"
           fi
 
@@ -113,25 +126,38 @@ jobs:
       - name: Get image major version
         id: fetch_source_meta
         run: |
-          set -x
-          # SOURCE_VERSION_MAJOR must be a number
-          declare -i SOURCE_VERSION_MAJOR=0
-
-          # Inspect the actual matrix-specific pinned image from image-versions.yaml
+          set -ex
+          # Inspect the actual matrix-specific pinned image
+          # If this fails, we'll try latest as a final fallback
           SOURCE_VERSION=$(
                 skopeo inspect --no-tags --raw --config \
                 "docker://${{ steps.extract_digest.outputs.full_image }}" | \
-                jq -r '.config.Labels["org.opencontainers.image.version"]'
+                jq -r '.config.Labels["org.opencontainers.image.version"]' 2>/dev/null || echo "null"
           )
+
+          # If the above failed, try inspecting the :latest fallback
           if [[ -z $SOURCE_VERSION || "$SOURCE_VERSION" == "null" ]]; then
-            echo "::error::SOURCE_VERSION was not fetched correctly"
-            exit 1
+            echo "::warning::SOURCE_VERSION was not fetched for ${{ steps.extract_digest.outputs.full_image }}. Trying latest tag..."
+            SOURCE_VERSION=$(
+                  skopeo inspect --no-tags --raw --config \
+                  "docker://ghcr.io/ublue-os/${{ matrix.image.name }}:latest" | \
+                  jq -r '.config.Labels["org.opencontainers.image.version"]' 2>/dev/null || echo "null"
+            )
           fi
+
+          if [[ -z $SOURCE_VERSION || "$SOURCE_VERSION" == "null" ]]; then
+             echo "::error::SOURCE_VERSION could not be fetched even for latest tag."
+             exit 1
+          fi
+
           echo "SOURCE_VERSION=$SOURCE_VERSION" >>$GITHUB_OUTPUT
 
-          SOURCE_VERSION_MAJOR=$([[ ${SOURCE_VERSION} =~ ^(.*-)?([[:digit:]]+) ]] && echo "${BASH_REMATCH[-1]}")
+          # Extract only the numbers (Fedora Version) from strings like "41" or "testing-41.2025..."
+          # We use a more aggressive grep to ensure we only get the numeric part
+          SOURCE_VERSION_MAJOR=$(echo "$SOURCE_VERSION" | grep -oP '\d+' | head -n1)
+
           if [[ -z ${SOURCE_VERSION_MAJOR} ]] || (( SOURCE_VERSION_MAJOR <= 0 )); then
-            echo "::error::SOURCE_VERSION_MAJOR was not fetched correctly"
+            echo "::error::SOURCE_VERSION_MAJOR ($SOURCE_VERSION_MAJOR) is not a valid number"
             exit 1
           fi
 
@@ -145,28 +171,47 @@ jobs:
       - name: Surface Recipe
         run: |
           set -ex
-          # Mirroring Justfile logic: patch the recipe with the actual matrix-specific base image
-          mkdir -p .bluebuild
-          yq ".base-image = \"${{ steps.extract_digest.outputs.full_image }}\" | .image-version = \"${{ matrix.image.tag }}\"" recipes/recipe.yml > .bluebuild/build-recipe.yml
+          # Patch the recipe with the actual matrix name, base-image, and version tag
+          # This prevents multiple matrix members from overwriting the same 'bazzite-dx' image
+          # We also inject 'alt-tags' here because BlueBuild CLI 0.9.x generates tags 
+          # declaratively from the recipe instead of taking --tag arguments.
+
+          FULL_IMAGE="${{ steps.extract_digest.outputs.full_image }}"
+          VERSION_MAJOR="${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}"
+
+          # Fix OCI reference parsing (ensure image:version@sha256 format)
+          if [[ "$FULL_IMAGE" == *"@"* ]]; then
+            export BASE="${FULL_IMAGE%@*}"
+            export BASE="${BASE%:*}" # Strip tag if present
+            export VERSION_PATCHED="${VERSION_MAJOR}@${FULL_IMAGE#*@}"
+          else
+            export BASE="${FULL_IMAGE%:*}"
+            export VERSION_PATCHED="${VERSION_MAJOR}"
+          fi
+
+          export NAME="${IMAGE_NAME}"
+          if [ "${{ matrix.image.tested }}" = "true" ]; then
+            export TAGS="latest,stable,${VERSION_MAJOR}"
+          else
+            export TAGS="experimental,latest-experimental,${VERSION_MAJOR}"
+          fi
+
+          yq -i '.name = env(NAME) | .base-image = env(BASE) | .image-version = env(VERSION_PATCHED) | .alt-tags = (env(TAGS) | split(","))' recipes/recipe.yml
+          cp recipes/recipe.yml recipes/build-recipe.yml
 
       - name: Build and Push with BlueBuild
-        uses: blue-build/github-action@v1.8
+        uses: blue-build/github-action@v1
         with:
-          recipe: .bluebuild/build-recipe.yml
+          recipe: build-recipe.yml
+          skip_checkout: true
           cosign_private_key: ${{ secrets.SIGNING_SECRET }}
           registry_token: ${{ secrets.GITHUB_TOKEN }}
           pr_event_number: ${{ github.event.number }}
           maximize_build_space: true
-          # Smart Matrix Tagging
-          tag_latest: ${{ matrix.image.tested }}
-          tag_stable: ${{ matrix.image.tested }}
-          tags: >-
-            ${{ matrix.image.tested == false && 'experimental latest-experimental' || '' }}
-            ${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}
-            ${{ steps.fetch_source_meta.outputs.SOURCE_VERSION }}
+          # Custom build options (conditional signing)
+          build_opts: "${{ secrets.SIGNING_SECRET == '' && '--no-sign' || '' }}"
           # Rechunk for better optimization
           rechunk: true
-
 
   check:
     name: Check all builds successful
