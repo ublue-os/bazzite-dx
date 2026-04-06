@@ -170,13 +170,31 @@ jobs:
             exit 1
           fi
 
+          # Extract NVIDIA Version labels (Upstream Alignment)
+          # Determine label key based on image variant
+          if [[ "${{ matrix.image.name }}" == *"nvidia-open"* ]]; then
+            export NVIDIA_LABEL_KEY="org.bazzite.kernel.nvidia"
+          else
+            export NVIDIA_LABEL_KEY="org.bazzite.kernel.nvidia_lts"
+          fi
+
+          NVIDIA_VERSION=$(
+                skopeo inspect --no-tags --raw --config "$INSPECT_REF" | \
+                jq -r ".config.Labels[\"$NVIDIA_LABEL_KEY\"]" 2>/dev/null || echo "null"
+          )
+
           echo "SOURCE_VERSION=$CLEAN_VERSION" >>$GITHUB_OUTPUT
           echo "SOURCE_VERSION_MAJOR=$SOURCE_VERSION_MAJOR" >>$GITHUB_OUTPUT
+          echo "NVIDIA_VERSION=$NVIDIA_VERSION" >>$GITHUB_OUTPUT
+          echo "NVIDIA_LABEL_KEY=$NVIDIA_LABEL_KEY" >>$GITHUB_OUTPUT
 
       - name: Generate output image ref
         id: gen_image_ref
         run: |
-          echo "IMAGE_NAME=${BASE_IMAGE/bazzite/bazzite-dx}" | tee -a "$GITHUB_ENV"
+          # Safe name translation using shell variables
+          export RAW_NAME="${{ matrix.image.name }}"
+          export OUT_NAME="${RAW_NAME/bazzite/bazzite-dx}"
+          echo "IMAGE_NAME=$OUT_NAME" | tee -a "$GITHUB_ENV"
 
       - name: Surface Recipe
         run: |
@@ -193,8 +211,7 @@ jobs:
           if [ "${{ matrix.image.tested }}" = "true" ]; then
             export TAGS="latest,stable,${VERSION_FULL},stable-${VERSION_FULL}"
           else
-            export TAG_PREFIX="experimental"
-            export TAGS="${TAG_PREFIX},${TAG_PREFIX}-${VERSION_FULL}"
+            export TAGS="testing,testing-${VERSION_FULL}"
           fi
 
           # 4. Patch Recipe
@@ -219,6 +236,9 @@ jobs:
           ' recipes/recipe.yml
 
           # Apply remaining labels and metadata
+          export NVIDIA_VER="${{ steps.fetch_source_meta.outputs.NVIDIA_VERSION }}"
+          export NVIDIA_KEY="${{ steps.fetch_source_meta.outputs.NVIDIA_LABEL_KEY }}"
+
           yq -i '
             .alt-tags = (env(TAGS) | split(",") | unique) |
             .labels."io.artifacthub.package.logo-url" = "${{ env.ARTIFACTHUB_LOGO_URL }}" |
@@ -240,6 +260,11 @@ jobs:
             .labels."org.opencontainers.image.created" = "'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'" |
             .labels."org.opencontainers.image.revision" = "'${GITHUB_SHA}'"
           ' recipes/recipe.yml
+
+          # Conditionally apply NVIDIA labels if found in base image
+          if [[ -n "$NVIDIA_VER" && "$NVIDIA_VER" != "null" ]]; then
+            yq -i '.labels.[env(NVIDIA_KEY)] = env(NVIDIA_VER)' recipes/recipe.yml
+          fi
 
           cp recipes/recipe.yml recipes/build-recipe.yml
 
