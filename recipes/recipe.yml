@@ -122,16 +122,9 @@ modules:
         - FiraCode
         - Hack
         - JetBrainsMono
-        - Meslo
-        - Noto
-        - RobotoMono
-        - SourceCodePro
-        - Ubuntu
-        - UbuntuMono
       google-fonts:
         - Inter
         - Outfit
-        - Roboto
 
   - type: initramfs
 
