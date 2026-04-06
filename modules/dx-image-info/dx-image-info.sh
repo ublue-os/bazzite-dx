@@ -14,7 +14,7 @@ FEDORA_MAJOR_VERSION=$(awk -F= '/VERSION_ID/ {print $2}' /etc/os-release | tr -d
 
 if [[ -d "/usr/share/ublue-os" ]]; then
 	echo "Updating $IMAGE_INFO..."
-	cat > "$IMAGE_INFO" <<EOF
+	cat >"$IMAGE_INFO" <<EOF
 {
   "image-name": "$IMAGE_NAME",
   "image-vendor": "$IMAGE_VENDOR",
@@ -62,8 +62,8 @@ fi
 # These files/services only exist on Deck variants; removal is safe and silent on Desktop.
 echo "Applying Workstation-standard cleanup..."
 rm -f /etc/sddm.conf.d/steamos.conf \
-      /etc/sddm.conf.d/virtualkbd.conf \
-      /etc/sddm.conf.d/zz-steamos-autologin.conf
+	/etc/sddm.conf.d/virtualkbd.conf \
+	/etc/sddm.conf.d/zz-steamos-autologin.conf
 systemctl disable bazzite-autologin.service || true
 
 # Show interactive tools that are hidden by default upstream

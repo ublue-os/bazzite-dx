@@ -146,6 +146,7 @@ build-recipe target_image tag:
     # Resolve and Patch
     export BASE_IMAGE=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .image" image-versions.yaml)
     export BASE_TAG=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .tag" image-versions.yaml)
+    export BASE_DIGEST=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .digest" image-versions.yaml)
     export IMAGE_NAME="bazzite-dx"
     export IMAGE_DESC="Developer Experience (DX) layer for Bazzite. Matrix-ready and Universal."
     export ARTIFACTHUB_LOGO_URL="https://avatars.githubusercontent.com/u/120224169?s=200&v=4"
@@ -155,18 +156,24 @@ build-recipe target_image tag:
     export VERSION_FULL="${BASE_TAG}.$(date +%Y%m%d)"
     export REVISION=$(git rev-parse HEAD 2>/dev/null || echo 'local')
 
+    if [[ -n "$BASE_DIGEST" && "$BASE_DIGEST" != "null" ]]; then
+        export IMAGE_VERSION_VAL="${BASE_TAG}@${BASE_DIGEST}"
+    else
+        export IMAGE_VERSION_VAL="${BASE_TAG}"
+    fi
+
     if [ -z "${BASE_IMAGE}" ] || [ "${BASE_IMAGE}" == "null" ]; then
         echo "Error: Image '{{ target_image }}' not found in image-versions.yaml"
         exit 1
     fi
 
-    echo "Generating build recipe for {{ target_image }} (Base: ${BASE_IMAGE}:${BASE_TAG})..."
+    echo "Generating build recipe for {{ target_image }} (Base: ${BASE_IMAGE}:${IMAGE_VERSION_VAL})..."
     mkdir -p .bluebuild
     yq '
       .name = env(IMAGE_NAME) |
       .description = env(IMAGE_DESC) |
       .base-image = env(BASE_IMAGE) |
-      .image-version = "latest" |
+      .image-version = env(IMAGE_VERSION_VAL) |
       .alt-tags = (["latest", "stable", "{{ tag }}", env(BASE_TAG)] | unique) |
       .labels."io.artifacthub.package.logo-url" = env(ARTIFACTHUB_LOGO_URL) |
       .labels."io.artifacthub.package.readme-url" = "https://raw.githubusercontent.com/" + env(REPO_OWNER) + "/bazzite-dx/main/README.md" |

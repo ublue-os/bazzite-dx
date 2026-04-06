@@ -108,17 +108,22 @@ jobs:
         id: extract_digest
         shell: bash
         run: |
-          # Use yq to extract the image + digest for the current matrix member
-          # Fallback to latest tag if not found (though Renovate should keep it synced)
-          FULL_IMAGE=$(yq '.images[] | select(.name == "${{ matrix.image.name }}") | .image + "@" + .digest' image-versions.yaml)
+          # Using yq to extract fields separately
+          export BASE_IMAGE=$(yq '.images[] | select(.name == "${{ matrix.image.name }}") | .image' image-versions.yaml)
+          export BASE_TAG=$(yq '.images[] | select(.name == "${{ matrix.image.name }}") | .tag' image-versions.yaml)
+          export BASE_DIGEST=$(yq '.images[] | select(.name == "${{ matrix.image.name }}") | .digest' image-versions.yaml)
 
-          # Handle empty digests or dummy 0000... digests
-          if [[ -z "$FULL_IMAGE" || "$FULL_IMAGE" == "@" || "$FULL_IMAGE" == *"@sha256:0000"* ]]; then
-            echo "::warning::Digest not found or dummy for ${{ matrix.image.name }}. Falling back to ghcr.io/ublue-os/${{ matrix.image.name }}:latest"
-            FULL_IMAGE="ghcr.io/ublue-os/${{ matrix.image.name }}:latest"
+          # Fallback if entries are missing
+          if [[ -z "$BASE_IMAGE" || "$BASE_IMAGE" == "null" ]]; then
+            BASE_IMAGE="ghcr.io/ublue-os/${{ matrix.image.name }}"
+          fi
+          if [[ -z "$BASE_TAG" || "$BASE_TAG" == "null" ]]; then
+            BASE_TAG="latest"
           fi
 
-          echo "full_image=$FULL_IMAGE" >> $GITHUB_OUTPUT
+          echo "base_image=$BASE_IMAGE" >> $GITHUB_OUTPUT
+          echo "base_tag=$BASE_TAG" >> $GITHUB_OUTPUT
+          echo "base_digest=$BASE_DIGEST" >> $GITHUB_OUTPUT
 
       # OUTPUTS:
       #   - SOURCE_VERSION: version of the source image. Ex.: testing-41.20250312
@@ -127,10 +132,15 @@ jobs:
         id: fetch_source_meta
         run: |
           set -ex
-          # Inspect the actual matrix-specific pinned image
+          # Use the composite image for inspection
+          if [[ -n "${{ steps.extract_digest.outputs.base_digest }}" && "${{ steps.extract_digest.outputs.base_digest }}" != "null" ]]; then
+            export INSPECT_REF="docker://${{ steps.extract_digest.outputs.base_image }}@${{ steps.extract_digest.outputs.base_digest }}"
+          else
+            export INSPECT_REF="docker://${{ steps.extract_digest.outputs.base_image }}:${{ steps.extract_digest.outputs.base_tag }}"
+          fi
+
           SOURCE_VERSION=$(
-                skopeo inspect --no-tags --raw --config \
-                "docker://${{ steps.extract_digest.outputs.full_image }}" | \
+                skopeo inspect --no-tags --raw --config "$INSPECT_REF" | \
                 jq -r '.config.Labels["org.opencontainers.image.version"]' 2>/dev/null || echo "null"
           )
 
@@ -188,13 +198,28 @@ jobs:
           fi
 
           # 4. Patch Recipe
-          # We set .image-version to "latest" to ensure the primary tag is clean.
-          # We include all standard uBlue/Bazzite labels.
+          # 4. Patch Recipe
+          export BASE_IMAGE="${{ steps.extract_digest.outputs.base_image }}"
+          export BASE_TAG="${{ steps.extract_digest.outputs.base_tag }}"
+          export BASE_DIGEST="${{ steps.extract_digest.outputs.base_digest }}"
+
+          if [[ -n "$BASE_DIGEST" && "$BASE_DIGEST" != "null" ]]; then
+            export IMAGE_VERSION_VAL="${BASE_TAG}@${BASE_DIGEST}"
+          else
+            export IMAGE_VERSION_VAL="${BASE_TAG}"
+          fi
+
+          # Apply base fields first
+          # Apply base fields
           yq -i '
             .name = env(NAME) |
             .description = "${{ env.IMAGE_DESC }}" |
-            .base-image = env(FULL_IMAGE) |
-            .image-version = "latest" |
+            .base-image = env(BASE_IMAGE) |
+            .image-version = env(IMAGE_VERSION_VAL)
+          ' recipes/recipe.yml
+
+          # Apply remaining labels and metadata
+          yq -i '
             .alt-tags = (env(TAGS) | split(",") | unique) |
             .labels."io.artifacthub.package.logo-url" = "${{ env.ARTIFACTHUB_LOGO_URL }}" |
             .labels."io.artifacthub.package.readme-url" = "https://raw.githubusercontent.com/${{ github.repository }}/main/README.md" |
@@ -229,8 +254,6 @@ jobs:
           maximize_build_space: true
           # Custom build options (conditional signing)
           build_opts: "${{ secrets.SIGNING_SECRET == '' && '--no-sign' || '' }}"
-          # Rechunk for better optimization
-          rechunk: true
 
   check:
     name: Check all builds successful
