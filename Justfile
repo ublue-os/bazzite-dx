@@ -149,7 +149,7 @@ build-recipe target_image tag:
     export BASE_DIGEST=$(yq ".images[] | select(.name == \"{{ target_image }}\") | .digest" image-versions.yaml)
     export IMAGE_NAME="bazzite-dx"
     export IMAGE_DESC="Developer Experience (DX) layer for Bazzite. Matrix-ready and Universal."
-    export ARTIFACTHUB_LOGO_URL="https://avatars.githubusercontent.com/u/120224169?s=200&v=4"
+    export ARTIFACTHUB_LOGO_URL="https://avatars.githubusercontent.com/u/187439889?s=200&v=4"
     export REPO_OWNER=$(git remote get-url origin | sed -E 's/.*[:\/](.*)\/(.*)\.git/\1/')
     export KERNEL_RELEASE=$(uname -r)
     export DATE_CREATED=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
@@ -173,7 +173,10 @@ build-recipe target_image tag:
       .name = env(IMAGE_NAME) |
       .description = env(IMAGE_DESC) |
       .base-image = env(BASE_IMAGE) |
-      .image-version = env(IMAGE_VERSION_VAL) |
+      .image-version = env(IMAGE_VERSION_VAL)
+    ' recipes/recipe.yml > .bluebuild/build-recipe.yml
+
+    yq -i '
       .alt-tags = (["latest", "stable", "{{ tag }}", env(BASE_TAG)] | unique) |
       .labels."io.artifacthub.package.logo-url" = env(ARTIFACTHUB_LOGO_URL) |
       .labels."io.artifacthub.package.readme-url" = "https://raw.githubusercontent.com/" + env(REPO_OWNER) + "/bazzite-dx/main/README.md" |
@@ -183,17 +186,13 @@ build-recipe target_image tag:
       .labels."io.artifacthub.package.prerelease" = "false" |
       .labels."containers.bootc" = "1" |
       .labels."ostree.linux" = env(KERNEL_RELEASE) |
-      .labels."org.opencontainers.image.title" = "Bazzite DX" |
-      .labels."org.opencontainers.image.description" = env(IMAGE_DESC) |
       .labels."org.opencontainers.image.vendor" = env(REPO_OWNER) |
       .labels."org.opencontainers.image.licenses" = "Apache-2.0" |
-      .labels."org.opencontainers.image.source" = "https://github.com/" + env(REPO_OWNER) + "/bazzite-dx/blob/main/Containerfile" |
-      .labels."org.opencontainers.image.url" = "https://github.com/" + env(REPO_OWNER) + "/bazzite-dx" |
+      .labels."org.opencontainers.image.url" = "https://dev.bazzite.gg" |
       .labels."org.opencontainers.image.documentation" = "https://raw.githubusercontent.com/" + env(REPO_OWNER) + "/bazzite-dx/main/README.md" |
       .labels."org.opencontainers.image.version" = env(VERSION_FULL) |
-      .labels."org.opencontainers.image.created" = env(DATE_CREATED) |
       .labels."org.opencontainers.image.revision" = env(REVISION)
-    ' recipes/recipe.yml > .bluebuild/build-recipe.yml
+    ' .bluebuild/build-recipe.yml
 
 [private]
 _rootful_load_image $target_image=default_image $tag=default_tag:
