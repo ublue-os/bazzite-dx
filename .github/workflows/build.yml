@@ -191,10 +191,10 @@ jobs:
 
           # 3. Generate Clean Tags (uBlue Standard)
           if [ "${{ matrix.image.tested }}" = "true" ]; then
-            export TAGS="latest,stable,${VERSION_MAJOR},stable-${VERSION_MAJOR},${VERSION_FULL},stable-${VERSION_FULL}"
+            export TAGS="latest,stable,${VERSION_FULL},stable-${VERSION_FULL}"
           else
             export TAG_PREFIX="experimental"
-            export TAGS="${TAG_PREFIX},${TAG_PREFIX}-${VERSION_MAJOR},${TAG_PREFIX}-${VERSION_FULL}"
+            export TAGS="${TAG_PREFIX},${TAG_PREFIX}-${VERSION_FULL}"
           fi
 
           # 4. Patch Recipe
