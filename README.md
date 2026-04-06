@@ -27,9 +27,10 @@ Bazzite-DX utilizes a **Smart Matrix** architecture powered by [BlueBuild](https
   - **`cli`**: Terminal excellence (bat, eza, fzf, zoxide, starship).
   - **`ai`**: Modern AI workstation (Goose, llmfit, linux-mcp-server).
   - **`cloud`**: Cloud-Native toolkit (kubectl, helm, k9s, terraform).
-- **Ready-to-Code Automation**: No manual setup for system permissions. The image automatically grants `docker`, `libvirt`, `incus`, and `dialout` access to wheel members.
+- **Ready-to-Code Automation**: No manual setup for system permissions. The image automatically grants `docker`, `libvirt`, and `dialout` access to wheel members.
+- **Advanced Virtualization Overrides**: Automated persistence for `libvirt` and `swtpm` (via Systemd workarounds) ensuring a seamless VM experience without user intervention.
 - **Hybrid DX Stack**: Strategic placement of tools for maximum performance.
-  - **Layered (OCI)**: High-performance observability (`bcc`, `bpftrace`, `bpftop`) and virtualization.
+  - **Layered (OCI)**: High-performance observability (`bcc`, `bpftrace`, `bpftop`) and KVMFR modules.
   - **Unlayered (Homebrew)**: Visual Studio Code and high-velocity CLI suites.
 - **Always-On Typography**: Professional developer fonts (JetBrains Mono, Fira Code, Nerd Fonts) are pre-baked into the image layers.
 - **Professional Flatpaks**: Essential DX apps pre-installed system-wide.
@@ -61,7 +62,7 @@ To rebase your current Bazzite installation to the DX edition, execute the comma
 
 Bazzite-DX is engineered to be **Ready-to-Code** out of the box.
 
-1. **Automatic Permissions**: After rebasing and rebooting, your user is automatically added to the necessary groups (`docker`, `libvirt`, `incus`, `dialout`). 
+1. **Automatic Permissions**: After rebasing and rebooting, your user is automatically added to the necessary groups (`docker`, `libvirt`, `dialout`). 
 2. **Workstation Flavors**: To activate your preferred developer toolset, use:
    ```bash
    ujust bazzite-dx <flavor>

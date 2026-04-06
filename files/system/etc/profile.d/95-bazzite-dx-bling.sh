@@ -32,28 +32,28 @@ BLING_SHELL="$(basename "$(readlink /proc/$$/exe)")"
 
 # 1. Mise Activation (Tool Manager)
 if command -v mise >/dev/null; then
-	eval "$(mise activate ${BLING_SHELL})"
+	eval "$(mise activate "${BLING_SHELL}")"
 fi
 
 # 2. Direnv Activation (Directory Environment)
 if command -v direnv >/dev/null; then
-	eval "$(direnv hook ${BLING_SHELL})"
+	eval "$(direnv hook "${BLING_SHELL}")"
 fi
 
 # 3. Zoxide Activation (Better 'cd')
 if command -v zoxide >/dev/null; then
-	eval "$(zoxide init ${BLING_SHELL})"
+	eval "$(zoxide init "${BLING_SHELL}")"
 fi
 
 # 4. Starship Prompt (Final Prompt Logic)
 if command -v starship >/dev/null; then
-	eval "$(starship init ${BLING_SHELL})"
+	eval "$(starship init "${BLING_SHELL}")"
 fi
 
 # 5. Atuin History Integration (Optional Sync)
 # To enable cloud-native command history, run: atuin register
 if command -v atuin >/dev/null; then
-	eval "$(atuin init ${BLING_SHELL})"
+	eval "$(atuin init "${BLING_SHELL}")"
 fi
 
 # --- Power-User Extras ---
