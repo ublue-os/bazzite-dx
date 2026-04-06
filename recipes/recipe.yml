@@ -3,8 +3,15 @@
 name: bazzite-dx
 description: Developer Experience (DX) layer for Bazzite. Matrix-ready and Universal.
 
-base-image: ghcr.io/ublue-os/bazzite-deck
-image-version: stable
+base-image: ghcr.io/ublue-os/bazzite
+image-version: latest
+
+alt-tags:
+  - stable
+  - "43"
+
+labels:
+  org.opencontainers.image.version: "43"
 
 modules:
   # ==========================================

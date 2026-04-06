@@ -128,16 +128,14 @@ jobs:
         run: |
           set -ex
           # Inspect the actual matrix-specific pinned image
-          # If this fails, we'll try latest as a final fallback
           SOURCE_VERSION=$(
                 skopeo inspect --no-tags --raw --config \
                 "docker://${{ steps.extract_digest.outputs.full_image }}" | \
                 jq -r '.config.Labels["org.opencontainers.image.version"]' 2>/dev/null || echo "null"
           )
 
-          # If the above failed, try inspecting the :latest fallback
+          # Fallback to latest tag if not found
           if [[ -z $SOURCE_VERSION || "$SOURCE_VERSION" == "null" ]]; then
-            echo "::warning::SOURCE_VERSION was not fetched for ${{ steps.extract_digest.outputs.full_image }}. Trying latest tag..."
             SOURCE_VERSION=$(
                   skopeo inspect --no-tags --raw --config \
                   "docker://ghcr.io/ublue-os/${{ matrix.image.name }}:latest" | \
@@ -146,21 +144,23 @@ jobs:
           fi
 
           if [[ -z $SOURCE_VERSION || "$SOURCE_VERSION" == "null" ]]; then
-             echo "::error::SOURCE_VERSION could not be fetched even for latest tag."
+             echo "::error::SOURCE_VERSION could not be fetched."
              exit 1
           fi
 
-          echo "SOURCE_VERSION=$SOURCE_VERSION" >>$GITHUB_OUTPUT
+          # Source version might be "testing-43.20250312" or just "43.20250312"
+          # We want the numeric part only: "43.20250312"
+          CLEAN_VERSION=$(echo "$SOURCE_VERSION" | grep -oP '\d+\.\d+' || echo "$SOURCE_VERSION" | grep -oP '\d+')
 
-          # Extract only the numbers (Fedora Version) from strings like "41" or "testing-41.2025..."
-          # We use a more aggressive grep to ensure we only get the numeric part
-          SOURCE_VERSION_MAJOR=$(echo "$SOURCE_VERSION" | grep -oP '\d+' | head -n1)
+          # Major version is just the first number: "43"
+          SOURCE_VERSION_MAJOR=$(echo "$CLEAN_VERSION" | cut -d. -f1)
 
           if [[ -z ${SOURCE_VERSION_MAJOR} ]] || (( SOURCE_VERSION_MAJOR <= 0 )); then
             echo "::error::SOURCE_VERSION_MAJOR ($SOURCE_VERSION_MAJOR) is not a valid number"
             exit 1
           fi
 
+          echo "SOURCE_VERSION=$CLEAN_VERSION" >>$GITHUB_OUTPUT
           echo "SOURCE_VERSION_MAJOR=$SOURCE_VERSION_MAJOR" >>$GITHUB_OUTPUT
 
       - name: Generate output image ref
@@ -171,32 +171,48 @@ jobs:
       - name: Surface Recipe
         run: |
           set -ex
-          # Patch the recipe with the actual matrix name, base-image, and version tag
-          # This prevents multiple matrix members from overwriting the same 'bazzite-dx' image
-          # We also inject 'alt-tags' here because BlueBuild CLI 0.9.x generates tags 
-          # declaratively from the recipe instead of taking --tag arguments.
-
-          FULL_IMAGE="${{ steps.extract_digest.outputs.full_image }}"
-          VERSION_MAJOR="${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}"
-
-          # Fix OCI reference parsing (ensure image:version@sha256 format)
-          if [[ "$FULL_IMAGE" == *"@"* ]]; then
-            export BASE="${FULL_IMAGE%@*}"
-            export BASE="${BASE%:*}" # Strip tag if present
-            export VERSION_PATCHED="${VERSION_MAJOR}@${FULL_IMAGE#*@}"
-          else
-            export BASE="${FULL_IMAGE%:*}"
-            export VERSION_PATCHED="${VERSION_MAJOR}"
-          fi
-
+          # 1. Image References
+          export FULL_IMAGE="${{ steps.extract_digest.outputs.full_image }}"
           export NAME="${IMAGE_NAME}"
+
+          # 2. Version Strings from fetch_source_meta
+          export VERSION_FULL="${{ steps.fetch_source_meta.outputs.SOURCE_VERSION }}"
+          export VERSION_MAJOR="${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}"
+
+          # 3. Generate Clean Tags (uBlue Standard)
           if [ "${{ matrix.image.tested }}" = "true" ]; then
-            export TAGS="latest,stable,${VERSION_MAJOR}"
+            export TAGS="latest,stable,${VERSION_MAJOR},stable-${VERSION_MAJOR},${VERSION_FULL},stable-${VERSION_FULL}"
           else
-            export TAGS="experimental,latest-experimental,${VERSION_MAJOR}"
+            export TAG_PREFIX="experimental"
+            export TAGS="${TAG_PREFIX},${TAG_PREFIX}-${VERSION_MAJOR},${TAG_PREFIX}-${VERSION_FULL}"
           fi
 
-          yq -i '.name = env(NAME) | .base-image = env(BASE) | .image-version = env(VERSION_PATCHED) | .alt-tags = (env(TAGS) | split(","))' recipes/recipe.yml
+          # 4. Patch Recipe
+          # We set .image-version to "latest" to ensure the primary tag is clean.
+          # We include all standard uBlue/Bazzite labels.
+          yq -i '
+            .name = env(NAME) |
+            .base-image = env(FULL_IMAGE) |
+            .image-version = "latest" |
+            .alt-tags = (env(TAGS) | split(",")) |
+            .labels."io.artifacthub.package.logo-url" = "${{ env.ARTIFACTHUB_LOGO_URL }}" |
+            .labels."io.artifacthub.package.readme-url" = "https://raw.githubusercontent.com/${{ github.repository }}/main/README.md" |
+            .labels."io.artifacthub.package.maintainers" = "[{\"name\": \"nklowns\", \"email\": \"nklowns@users.noreply.github.com\"}]" |
+            .labels."io.artifacthub.package.keywords" = "bootc,bazzite,dx,ublue,universal-blue,fedora,gaming,developer" |
+            .labels."io.artifacthub.package.deprecated" = "false" |
+            .labels."io.artifacthub.package.prerelease" = "false" |
+            .labels."org.opencontainers.image.title" = "Bazzite DX" |
+            .labels."org.opencontainers.image.description" = "${{ env.IMAGE_DESC }}" |
+            .labels."org.opencontainers.image.vendor" = "${{ github.repository_owner }}" |
+            .labels."org.opencontainers.image.licenses" = "Apache-2.0" |
+            .labels."org.opencontainers.image.source" = "https://github.com/${{ github.repository }}" |
+            .labels."org.opencontainers.image.url" = "https://bazzite.gg" |
+            .labels."org.opencontainers.image.documentation" = "https://raw.githubusercontent.com/${{ github.repository }}/main/README.md" |
+            .labels."org.opencontainers.image.version" = "" + env(VERSION_FULL) |
+            .labels."org.opencontainers.image.created" = "'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'" |
+            .labels."org.opencontainers.image.revision" = "'${GITHUB_SHA}'"
+          ' recipes/recipe.yml
+
           cp recipes/recipe.yml recipes/build-recipe.yml
 
       - name: Build and Push with BlueBuild
