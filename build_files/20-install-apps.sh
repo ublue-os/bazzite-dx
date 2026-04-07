@@ -14,9 +14,6 @@ dnf5 install -y \
     podman-machine \
     podman-tui \
     python3-ramalama \
-    qemu-kvm \
-    virt-manager \
-    edk2-ovmf \
     restic \
     rclone \
     sysprof \
@@ -35,6 +32,9 @@ dnf5 --setopt=install_weak_deps=False install -y \
     rocm-smi \
     qemu \
     libvirt \
+    qemu-kvm \
+    virt-manager \
+    edk2-ovmf \
     guestfs-tools
 
 # Restore UUPD update timer and Input Remapper
