@@ -14,7 +14,6 @@ dnf5 install -y \
     podman-machine \
     podman-tui \
     python3-ramalama \
-    qemu-kvm \
     restic \
     rclone \
     sysprof \
@@ -22,6 +21,21 @@ dnf5 install -y \
     usbmuxd \
     waypipe \
     zsh
+
+dnf5 remove -y \
+    mesa-libOpenCL
+
+dnf5 --setopt=install_weak_deps=False install -y \
+    rocm-hip \
+    rocm-opencl \
+    rocm-clinfo \
+    rocm-smi \
+    qemu \
+    libvirt \
+    qemu-kvm \
+    virt-manager \
+    edk2-ovmf \
+    guestfs-tools
 
 # Restore UUPD update timer and Input Remapper
 sed -i 's@^NoDisplay=true@NoDisplay=false@' /usr/share/applications/input-remapper-gtk.desktop
