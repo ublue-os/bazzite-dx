@@ -23,6 +23,18 @@ dnf5 install -y \
     waypipe \
     zsh
 
+dnf5 remove -y \
+    mesa-libOpenCL
+
+dnf5 --setopt=install_weak_deps=False install -y \
+    rocm-hip \
+    rocm-opencl \
+    rocm-clinfo \
+    rocm-smi \
+    qemu \
+    libvirt \
+    guestfs-tools
+
 # Restore UUPD update timer and Input Remapper
 sed -i 's@^NoDisplay=true@NoDisplay=false@' /usr/share/applications/input-remapper-gtk.desktop
 systemctl enable input-remapper.service
