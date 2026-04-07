@@ -20,6 +20,7 @@ dnf5 install -y \
     sysprof \
     tiptop \
     usbmuxd \
+    waypipe \
     zsh
 
 # Restore UUPD update timer and Input Remapper
