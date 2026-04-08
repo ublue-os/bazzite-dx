@@ -1,0 +1,6 @@
+blocklists:
+  - block:
+    - org.virt_manager.virt-manager
+  - block-regex:
+    - com\.visualstudio\.code.*
+    - com\.vscodium\.codium.*
