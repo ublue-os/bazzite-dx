@@ -24,8 +24,6 @@ setup-virtualization ACTION="":
     if [ "$OPTION" == "help" ]; then
       echo "Usage: ujust setup-virtualization <option>"
       echo "  <option>: Specify the quick option to skip the prompt"
-      echo "  Use 'virt-on' to select Enable Virtualization"
-      echo "  Use 'virt-off' to select Disable Virtualization"
       echo "  Use 'group' to select Add $USER to libvirt group"
       echo "  Use 'vfio-on' to select Enable VFIO drivers"
       echo "  Use 'vfio-off' to select Disable VFIO drivers"
@@ -35,10 +33,7 @@ setup-virtualization ACTION="":
       exit 0
     elif [ "$OPTION" == "" ]; then
       echo "${bold}Virtualization Setup${normal}"
-      echo "NOTE: Enabling Virtualization will install the virt-manager flatpak and set kernel args"
       OPTION=$(Choose \
-        "Enable Virtualization" \
-        "Disable Virtualization" \
         "Add $USER to libvirt group" \
         "Enable VFIO drivers" \
         "Disable VFIO drivers" \
@@ -47,51 +42,7 @@ setup-virtualization ACTION="":
         "Disable USB hot plugging" \
       )
     fi
-    if [[ "${OPTION,,}" =~ (^enable[[:space:]]virtualization|virt-on) ]]; then
-        if ! rpm -q virt-manager | grep -P "^virt-manager-" 1>/dev/null; then
-          echo "Installing virt-manager..."
-          flatpak install flathub org.virt_manager.virt-manager
-          rpm-ostree kargs \
-          --append-if-missing="kvm.ignore_msrs=1" \
-          --append-if-missing="kvm.report_ignored_msrs=0"
-          echo "Making sure swtpm will work"
-          if [ ! -d "/var/lib/swtpm-localca" ]; then
-            sudo mkdir /var/lib/swtpm-localca
-          fi
-          sudo chown tss /var/lib/swtpm-localca
-          sudo restorecon -rv /var/lib/libvirt
-          sudo restorecon -rv /var/log/libvirt
-          echo "Giving qemu access to read ISO files from $HOME"
-          sudo setfacl -m u:qemu:rx $HOME
-          if sudo test ! -f "/etc/libvirt/hooks/qemu"; then
-            echo "Adding libvirt qemu hooks"
-            sudo wget 'https://raw.githubusercontent.com/PassthroughPOST/VFIO-Tools/master/libvirt_hooks/qemu' -O /etc/libvirt/hooks/qemu
-            sudo chmod +x /etc/libvirt/hooks/qemu
-            sudo grep -A1 -B1 "# Add" /etc/libvirt/hooks/qemu | sed 's/^# //g'
-            if sudo test ! -d "/etc/libvirt/hooks/qemu.d"; then
-              sudo mkdir /etc/libvirt/hooks/qemu.d
-            fi
-          fi
-          sudo systemctl enable bazzite-libvirtd-setup.service \
-            && echo "libvirtd will be enabled at next reboot"
-          echo 'Please reboot to apply changes'
-        fi
-    elif [[ "${OPTION,,}" =~ (^disable[[:space:]]virtualization|virt-off) ]]; then
-      if [ "$(systemctl is-enabled libvirtd.service)" == "enabled" ]; then
-        echo "${red}Disabling${n} libvirtd before removal"
-        sudo systemctl disable --now libvirtd 2> /dev/null
-      fi
-      if [ "$(systemctl is-enabled bazzite-libvirtd-setup.service)" == "enabled" ]; then
-        echo "${red}Disabling${n} bazzite-libvirtd-setup"
-        sudo systemctl disable --now bazzite-libvirtd-setup.service 2> /dev/null
-      fi
-      echo "Removing virt-manager..."
-      flatpak uninstall org.virt_manager.virt-manager
-      rpm-ostree kargs \
-      --delete-if-present="kvm.ignore_msrs=1" \
-      --delete-if-present="kvm.report_ignored_msrs=0"
-      echo 'Please reboot to apply changes'
-    elif [[ "${OPTION,,}" =~ (^enable[[:space:]]vfio|vfio-on) ]]; then
+    if [[ "${OPTION,,}" =~ (^enable[[:space:]]vfio|vfio-on) ]]; then
       # Check if we are running on a Steam Deck
       if /usr/libexec/hwsupport/valve-hardware; then
         echo "IOMMU is not supported on Steam Deck"
