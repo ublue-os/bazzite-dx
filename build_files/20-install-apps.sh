@@ -10,6 +10,7 @@ dnf5 install -y \
     flatpak-builder \
     git-subtree \
     nicstat \
+    niri \
     numactl \
     podman-machine \
     podman-tui \
