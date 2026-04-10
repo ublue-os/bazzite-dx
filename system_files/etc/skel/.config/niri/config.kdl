@@ -1,0 +1,80 @@
+// Niri scrollable-tiling Wayland compositor configuration
+// DankMaterialShell (dms) provides the full desktop shell experience:
+// panels, launcher, notifications, theming, lock screen, and media controls.
+// Reference: https://github.com/YaLTeR/niri/wiki
+
+// Export Wayland-compatibility environment variables into the session.
+environment {
+    XDG_CURRENT_DESKTOP "niri"
+    QT_QPA_PLATFORM "wayland"
+    ELECTRON_OZONE_PLATFORM_HINT "auto"
+    QT_QPA_PLATFORMTHEME "gtk3"
+}
+
+// Start DankMaterialShell on login.
+spawn-at-startup "dms" "run"
+
+// DMS manages these config fragments; they are auto-populated on first run.
+// The placeholder files must exist before niri starts — see the user-setup hook.
+include "dms/colors.kdl"
+include "dms/layout.kdl"
+include "dms/alttab.kdl"
+include "dms/binds.kdl"
+
+input {
+    keyboard {
+        xkb { }
+    }
+
+    touchpad {
+        tap
+        natural-scroll
+    }
+}
+
+// Round window corners to match the DMS Material Design theme.
+window-rule {
+    geometry-corner-radius 12
+    clip-to-geometry true
+}
+
+// Core niri window-management keybinds.
+// DMS-specific binds (spotlight, IPC actions, etc.) are injected via
+// dms/binds.kdl above after DMS first runs.
+binds {
+    // Terminal — konsole on KDE, gnome-terminal on GNOME
+    Mod+Return { spawn "bash" "-c" "konsole 2>/dev/null || gnome-terminal 2>/dev/null || flatpak run app.drey.Warp"; }
+
+    Mod+Q { close-window; }
+
+    Mod+Left  { focus-column-left; }
+    Mod+Down  { focus-window-down; }
+    Mod+Up    { focus-window-up; }
+    Mod+Right { focus-column-right; }
+
+    Mod+Shift+Left  { move-column-left; }
+    Mod+Shift+Down  { move-window-down; }
+    Mod+Shift+Up    { move-window-up; }
+    Mod+Shift+Right { move-column-right; }
+
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+Shift+1 { move-window-to-workspace 1; }
+    Mod+Shift+2 { move-window-to-workspace 2; }
+    Mod+Shift+3 { move-window-to-workspace 3; }
+    Mod+Shift+4 { move-window-to-workspace 4; }
+    Mod+Shift+5 { move-window-to-workspace 5; }
+
+    Mod+F { maximize-column; }
+    Mod+Shift+F { fullscreen-window; }
+
+    Print { screenshot; }
+
+    // Emergency exit — use if DMS lock screen is unavailable
+    Mod+Shift+E { quit; }
+}
+
+screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
