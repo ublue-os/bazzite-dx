@@ -1,0 +1,57 @@
+# Niri configuration file
+
+input {
+    keyboard {
+        xkb {
+            layout = "us"
+        }
+    }
+    
+    touchpad {
+        tap = true
+        natural-scroll = true
+        accel-speed = 0.2
+        accel-profile = "adaptive"
+    }
+    
+    mouse {
+        accel-speed = 0.2
+        accel-profile = "adaptive"
+    }
+}
+
+output "eDP-1" {
+    scale = 1.0
+}
+
+output "HDMI-1" {
+    scale = 1.0
+}
+
+layout "dwindle" {
+    default-column-width { proportion = 0.5; }
+    default-column-width { fixed = 800; }
+}
+
+binds {
+    "Super+Return" = "spawn" "foot"
+    "Super+D" = "spawn" "fuzzel"
+    "Super+Q" = "close-window"
+    "Super+H" = "focus-column-left"
+    "Super+J" = "focus-window-down"
+    "Super+K" = "focus-window-up"
+    "Super+L" = "focus-column-right"
+    "Super+Shift+H" = "move-column-left"
+    "Super+Shift+J" = "move-window-down"
+    "Super+Shift+K" = "move-window-up"
+    "Super+Shift+L" = "move-column-right"
+    "Super+Home" = "focus-workspace" 1
+    "Super+End" = "focus-workspace" 2
+    "Super+Prior" = "focus-workspace" 3
+    "Super+Next" = "focus-workspace" 4
+}
+
+environment {
+    XCURSOR_THEME = "Adwaita"
+    XCURSOR_SIZE = "24"
+}
