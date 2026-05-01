@@ -1,0 +1,11 @@
+[org/gnome/desktop/interface]
+gtk-theme='Dank-Material'
+icon-theme='Dank-Material'
+cursor-theme='Adwaita'
+cursor-size=24
+font-name='Cantarell 11'
+
+[org/gnome/desktop/wm/keybindings]
+minimize=['<Super>comma']
+maximize=['<Super>period']
+unmaximize=['<Super>period']
