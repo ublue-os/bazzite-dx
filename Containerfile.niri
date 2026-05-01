@@ -1,0 +1,61 @@
+FROM quay.io/ublue-os/bazzite-dx:latest
+
+# Install niri and dependencies
+RUN dnf install -y \
+    niri \
+    systemd-resolved \
+    dconf \
+    gsettings-dconf \
+    dbus-x11 \
+    xwayland \
+    foot \
+    fuzzel \
+    libadwaita \
+    gtk4 \
+    adwaita-icon-theme
+
+# Create wayland sessions directory
+RUN mkdir -p /usr/share/wayland-sessions
+
+# Add niri session file
+RUN cat > /usr/share/wayland-sessions/niri.desktop << 'SESSIONEOF'
+[Desktop Entry]
+Name=Niri
+Comment=Niri Wayland Compositor
+Exec=niri
+Type=Application
+DesktopNames=niri
+X-GDM-Session=niri
+SESSIONEOF
+
+# Clone and install dank material theme
+RUN mkdir -p /tmp/theme-install && cd /tmp/theme-install && \
+    git clone --depth=1 https://github.com/alvatomb/dank-material-gtk.git . && \
+    mkdir -p /usr/share/themes /usr/share/icons && \
+    find . -maxdepth 1 -type d -name "Dank-Material*" -exec cp -r {} /usr/share/themes/ \; && \
+    find . -path "*/icons/Dank-Material*" -type d -exec cp -r {} /usr/share/icons/ \; && \
+    cd / && rm -rf /tmp/theme-install
+
+# Set default GTK theme to dank material
+RUN mkdir -p /etc/dconf/db /etc/dconf/profile && \
+    cat > /etc/dconf/profile/user << 'DCONFEOF'
+user-db:user
+system-db:local
+DCONFEOF
+
+RUN cat > /etc/dconf/db/local.d/00-dank-material << 'DCONFEOF'
+[org/gnome/desktop/interface]
+gtk-theme='Dank-Material'
+icon-theme='Dank-Material'
+DCONFEOF
+
+# Compile dconf
+RUN dconf update
+
+# Cleanup
+RUN dnf clean all && rm -rf /var/cache/dnf/*
+
+# Bootc labels
+LABEL version="1.0"
+LABEL summary="Bazzite DX with Niri + Dank Material"
+LABEL description="Immutable Fedora with Niri Wayland compositor and Dank Material GTK theme"
