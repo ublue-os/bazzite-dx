@@ -1,0 +1,12 @@
+[Unit]
+Description=Niri Wayland Session
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=niri
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target
