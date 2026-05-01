@@ -1,4 +1,4 @@
-export repo_organization := env("GITHUB_REPOSITORY_OWNER", "ublue-os")
+export repo_organization := env("yngvildr-the-voracious", "ublue-os")
 export image_name := env("IMAGE_NAME", "bazzite-dx")
 export default_tag := env("DEFAULT_TAG", "latest")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
@@ -201,3 +201,15 @@ run-vm-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-
 
 [group('Run Virtual Machine')]
 run-vm-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "iso" "image-builder-iso.config.toml")
+
+# Niri variant builds
+build-niri:
+    podman build -t localhost/bazzite-dx-niri:latest -f Containerfile.niri .
+
+build-niri-bootc:
+    podman build --security-opt=label=disable -t ghcr.io/YOUR_USERNAME/bazzite-dx-niri:latest -f Containerfile.niri .
+
+push-niri-bootc:
+    podman push ghcr.io/YOUR_USERNAME/bazzite-dx-niri:latest
+
+run-niri-bootc: build-niri-bootc push-niri-bootc
