@@ -2,7 +2,7 @@
 
 source /usr/lib/ublue/setup-services/libsetup.sh
 
-version-script vscode-extensions-dx user 1 || exit 1
+version-script vscode-extensions-dx user 1 || exit 0
 
 set -x
 

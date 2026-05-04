@@ -155,7 +155,7 @@ rebuild-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_reb
 [group('Build Virtual Machine Image')]
 rebuild-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "iso" "iso.toml")
 
-_run-vm $target_image $tag $type $config:
+_run-vm $target_image $tag $type:
     #!/usr/bin/env bash
     set -euxo pipefail
 
@@ -194,10 +194,10 @@ _run-vm $target_image $tag $type $config:
     fg "%${PODMAN}"
 
 [group('Run Virtual Machine')]
-run-vm-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "qcow2" "image-builder.config.toml")
+run-vm-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "qcow2")
 
 [group('Run Virtual Machine')]
-run-vm-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "raw" "image-builder.config.toml")
+run-vm-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "raw")
 
 [group('Run Virtual Machine')]
-run-vm-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "iso" "image-builder-iso.config.toml")
+run-vm-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "iso")
