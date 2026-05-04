@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 source /usr/lib/ujust/ujust.sh
-# Get the image name based on the filename
-IMAGE_NAME=$(basename "$0" | sed -E 's/(-dx|)-kvmfr-setup//')
-if [ "$IMAGE_NAME" == "bazzite" ]; then
-    IMAGE_NAME="bazzite-dx"
-fi
+# This script ships only with bazzite-dx; the image name is fixed.
+IMAGE_NAME="bazzite-dx"
 
 # Required disclaimer and where to report issues first
 echo "$(Urllink "https://looking-glass.io/docs/rc/ivshmem_kvmfr/#libvirt" "This module") along with $(Urllink "https://looking-glass.io" "Looking Glass") is very experimental and not recommended for production use!"
