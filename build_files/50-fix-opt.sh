@@ -10,6 +10,7 @@ log() {
 log "Starting /opt directory fix"
 
 # Move directories from /var/opt to /usr/lib/opt
+mkdir -p /usr/lib/opt
 for dir in /var/opt/*/; do
   [ -d "$dir" ] || continue
   dirname=$(basename "$dir")
