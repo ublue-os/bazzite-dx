@@ -2,6 +2,7 @@ export repo_organization := env("GITHUB_REPOSITORY_OWNER", "ublue-os")
 export image_name := env("IMAGE_NAME", "bazzite-dx")
 export default_tag := env("DEFAULT_TAG", "latest")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
+export iso_ref_tag := env("ISO_REF_TAG", "latest")
 export SUDO_DISPLAY := if `if [ -n "${DISPLAY:-}" ] || [ -n "${WAYLAND_DISPLAY:-}" ]; then echo true; fi` == "true" { "true" } else { "false" }
 export SUDOIF := if `id -u` == "0" { "" } else if SUDO_DISPLAY == "true" { "sudo --askpass" } else { "sudo" }
 export PODMAN := if path_exists("/usr/bin/podman") == "true" { env("PODMAN", "/usr/bin/podman") } else if path_exists("/usr/bin/docker") == "true" { env("PODMAN", "docker") } else { env("PODMAN", "exit 1 ; ") }
@@ -143,8 +144,20 @@ build-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_bui
 [group('Build Virtual Machine Image')]
 build-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "raw" "image.toml")
 
+# Render iso.toml.in into _build_iso/iso.toml using IMAGE_VENDOR/IMAGE_NAME/ISO_REF_TAG
+[private]
+_render-iso-config:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p _build_iso
+    IMAGE_VENDOR="${repo_organization}" \
+      IMAGE_NAME="${image_name}" \
+      ISO_REF_TAG="${iso_ref_tag}" \
+      envsubst '${IMAGE_VENDOR} ${IMAGE_NAME} ${ISO_REF_TAG}' \
+        < iso.toml.in > _build_iso/iso.toml
+
 [group('Build Virtual Machine Image')]
-build-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "iso" "iso.toml")
+build-iso $target_image=("localhost/" + image_name) $tag=default_tag: _render-iso-config && (_build-bib target_image tag "iso" "_build_iso/iso.toml")
 
 [group('Build Virtual Machine Image')]
 rebuild-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "qcow2" "image.toml")
@@ -153,7 +166,7 @@ rebuild-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_r
 rebuild-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "raw" "image.toml")
 
 [group('Build Virtual Machine Image')]
-rebuild-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "iso" "iso.toml")
+rebuild-iso $target_image=("localhost/" + image_name) $tag=default_tag: _render-iso-config && (_rebuild-bib target_image tag "iso" "_build_iso/iso.toml")
 
 _run-vm $target_image $tag $type $config:
     #!/usr/bin/env bash
