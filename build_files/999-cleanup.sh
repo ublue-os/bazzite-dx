@@ -21,6 +21,6 @@ rm -rf /var
 mkdir -p /var
 
 # Commit and lint container
-bootc container lint || true
+bootc container lint || echo "::warning::bootc container lint reported issues"
 
 log "Cleanup completed"
