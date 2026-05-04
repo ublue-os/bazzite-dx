@@ -69,7 +69,7 @@ build $target_image=image_name $tag=default_tag:
     ${PODMAN} build \
       "${BUILD_ARGS[@]}" \
       --pull=newer \
-      --tag "${image_name}:${tag}" \
+      --tag "${target_image}:${tag}" \
       .
 
 _rootful_load_image $target_image=image_name $tag=default_tag:
