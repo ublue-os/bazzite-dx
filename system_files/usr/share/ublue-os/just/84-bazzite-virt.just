@@ -64,9 +64,8 @@ setup-virtualization ACTION="":
           echo "Giving qemu access to read ISO files from $HOME"
           sudo setfacl -m u:qemu:rx $HOME
           if sudo test ! -f "/etc/libvirt/hooks/qemu"; then
-            echo "Adding libvirt qemu hooks"
-            sudo wget 'https://raw.githubusercontent.com/PassthroughPOST/VFIO-Tools/master/libvirt_hooks/qemu' -O /etc/libvirt/hooks/qemu
-            sudo chmod +x /etc/libvirt/hooks/qemu
+            echo "Installing libvirt qemu hook (vendored from PassthroughPOST/VFIO-Tools)"
+            sudo install -m 0755 /usr/share/bazzite-dx/libvirt-hooks/qemu /etc/libvirt/hooks/qemu
             sudo grep -A1 -B1 "# Add" /etc/libvirt/hooks/qemu | sed 's/^# //g'
             if sudo test ! -d "/etc/libvirt/hooks/qemu.d"; then
               sudo mkdir /etc/libvirt/hooks/qemu.d
