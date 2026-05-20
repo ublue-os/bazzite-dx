@@ -1,7 +1,7 @@
 # vim: set ft=make :
 
 # Configure docker,incus-admin,libvirt, container manager, serial permissions
-[group('System')]
+[group('system')]
 dx-group:
     #!/usr/bin/pkexec bash
     append_group() {
