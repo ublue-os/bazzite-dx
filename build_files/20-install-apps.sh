@@ -57,6 +57,14 @@ if [[ "$IMAGE_NAME" == *gnome* ]]; then
 
     systemctl enable gdm.service
 else
+    dnf5 install -y \
+        plasma-login-manager
+
+    dnf5 remove -y \
+        sddm
+
+    systemctl enable plasmalogin
+
     # Re-enable logout and switch user functionality in KDE
     sed -i -E \
       -e 's/^(action\/switch_user)=false/\1=true/' \
