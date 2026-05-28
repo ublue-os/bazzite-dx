@@ -11,6 +11,6 @@ Besides edits to the Github workflow to accomodate the testing/unstable tags, an
 
 ## How to rebase
 
-`sudo bootc switch ghcr.io/travis-fm/bazzite-dx-dev-<IMAGE TYPE>:<RELEASE TAG>`
+`sudo bootc switch ghcr.io/travis-fm/bazzite-dx-<IMAGE TYPE>:<RELEASE TAG>`
 
-For example: `sudo bootc switch ghcr.io/travis-fm/bazzite-dx-dev-nvidia:unstable`
+For example: `sudo bootc switch ghcr.io/travis-fm/bazzite-dx-nvidia:unstable`
