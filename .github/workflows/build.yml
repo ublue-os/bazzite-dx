@@ -1,5 +1,5 @@
 ---
-name: Build Bazzite DX
+name: Build Bazzite DX Dev
 on:
   repository_dispatch:
     types:
@@ -16,7 +16,7 @@ env:
 
   # The tag used in the image from which we base of.
   # ex.: ghcr.io/org/image:IMAGE_SOURCE_TAG
-  IMAGE_SOURCE_TAG: "unstable"
+  IMAGE_SOURCE_TAG: "${{ github.event.client_payload.image_source_tag || 'unstable' }}"
   SOURCE_ORG: "ublue-os"
   SOURCE_REPO: "bazzite"
 
