@@ -1,51 +1,16 @@
-# Bazzite Developer Edition
+# Bazzite-DX Testing/Unstable Images
 
-[![Build Bazzite DX](https://github.com/ublue-os/bazzite-dx/actions/workflows/build.yml/badge.svg)](https://github.com/ublue-os/bazzite-dx/actions/workflows/build.yml)
+[![Build Bazzite DX](https://github.com/travis-fm/bazzite-dx-dev/actions/workflows/build.yml/badge.svg)](https://github.com/travis-fm/bazzite-dx-dev/actions/workflows/build.yml)
 
-This is just bazzite, but with extra developer-specific tooling, aiming to match [Bluefin DX](https://docs.projectbluefin.io/bluefin-dx/) and [Aurora DX](https://docs.getaurora.dev/dx/aurora-dx-intro) in functionality
+[!IMPORTANT]
+At this time, only `unstable` images are available while the Bazzite dev team works on porting F44 to the base deck images. `testing` images will become available once deck builds are re-enabled there.
 
-[`bazzite-gdx`](https://github.com/ublue-os/bazzite-gdx) will source from here and be focused for game development.
+These are image builds for Bazzite-DX using the testing and unstable branches of Bazzite. If you don't know the implications of this, you should probably use the regular [Bazzite](https://github.com/ublue-os/bazzite) or [Bazzite-DX](https://github.com/ublue-os/bazzite-dx) builds instead.
 
-## Installation
+Besides edits to the Github workflow to accomodate the testing/unstable tags, and cosign.pub for image signing, all code should be identical. The F44 branch is regularly merged into main during testing for ease of workflow running.
 
-To rebase an existing Bazzite installation to Bazzite DX, use one of the following commands based on your current variant:
+## How to rebase
 
-**For KDE Plasma (default Bazzite):**
-```bash
-brh rebase bazzite-dx:stable
-```
+`sudo bootc switch ghcr.io/travis-fm/bazzite-dx-dev-<IMAGE TYPE>:<RELEASE TAG>`
 
-**For GNOME:**
-```bash
-brh rebase bazzite-dx-gnome:stable
-```
-
-### NVIDIA Variants
-
-**For KDE Plasma with NVIDIA:**
-```bash
-brh rebase bazzite-dx-nvidia:stable
-```
-
-**For GNOME with NVIDIA:**
-```bash
-brh rebase bazzite-dx-nvidia-gnome:stable
-```
-
-### ⚠️ Important Desktop Environment Warning
-
-**Do not switch between GNOME and KDE variants!** If you are currently running:
-- **GNOME** (bazzite-gnome*): Only use the `-gnome` variants above
-- **KDE Plasma** (standard bazzite): Only use the variants without `-gnome` in the name
-
-Switching between desktop environments via rebase can break your installation and may require a complete reinstall.
-
-After running the rebase command, reboot your system to complete the installation. 
-
-## Acknowledgments
-
-This project is built upon the work from [amyos](https://github.com/astrovm/amyos)
-
-## Metrics
-
-![Alt](https://repobeats.axiom.co/api/embed/8568b042f7cfba9dd477885ed5ee6573ab78bb5e.svg "Repobeats analytics image")
+For example: `sudo bootc switch ghcr.io/travis-fm/bazzite-dx-dev-nvidia:unstable`
