@@ -196,7 +196,7 @@ jobs:
           # Common vars for generating tags
           VERSION_TAG="${{ steps.relabel.outputs.version }}"
 
-          BUILD_TAGS=("stable-${VERSION_TAG}" "latest" "stable" "stable-${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}")
+          BUILD_TAGS=("${{ env.IMAGE_SOURCE_TAG }}-${VERSION_TAG}" "latest" "${{ env.IMAGE_SOURCE_TAG }}" "${{ env.IMAGE_SOURCE_TAG}}-${{ steps.fetch_source_meta.outputs.SOURCE_VERSION_MAJOR }}")
 
           echo "Generated the following build tags: "
           for TAG in "${BUILD_TAGS[@]}"; do
