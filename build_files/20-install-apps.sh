@@ -47,8 +47,8 @@ rm -f /etc/sddm.conf.d/steamos.conf
 rm -f /etc/sddm.conf.d/virtualkbd.conf
 rm -f /etc/sddm.conf.d/zz-steamos-autologin.conf
 rm -f /usr/share/gamescope-session-plus/bootstrap_steam.tar.gz
-systemctl disable bazzite-autologin.service
-dnf5 remove -y steamos-manager
+dnf5 remove -y steamos-manager-powerstation
+dnf5 install -y ds-inhibit
 
 if [[ "$IMAGE_NAME" == *gnome* ]]; then
     # Remove SDDM and re-enable GDM on GNOME builds.
@@ -57,6 +57,14 @@ if [[ "$IMAGE_NAME" == *gnome* ]]; then
 
     systemctl enable gdm.service
 else
+    dnf5 install -y \
+        plasma-login-manager
+
+    dnf5 remove -y \
+        sddm
+
+    systemctl enable plasmalogin
+
     # Re-enable logout and switch user functionality in KDE
     sed -i -E \
       -e 's/^(action\/switch_user)=false/\1=true/' \
