@@ -48,7 +48,8 @@ rm -f /etc/sddm.conf.d/virtualkbd.conf
 rm -f /etc/sddm.conf.d/zz-steamos-autologin.conf
 rm -f /usr/share/gamescope-session-plus/bootstrap_steam.tar.gz
 dnf5 remove -y steamos-manager-powerstation
-dnf5 install -y ds-inhibit
+dnf5 install --enable-repo="copr:copr.fedorainfracloud.org:ublue-os:bazzite" -y \
+    ds-inhibit
 systemctl enable ds-inhibit.service
 
 if [[ "$IMAGE_NAME" == *gnome* ]]; then
