@@ -9,6 +9,7 @@ dnf5 install -y \
     ccache \
     flatpak-builder \
     git-subtree \
+    google-noto-sans-fonts \
     nicstat \
     numactl \
     podman-machine \
