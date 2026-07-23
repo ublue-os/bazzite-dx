@@ -43,6 +43,11 @@ sed -i 's@^NoDisplay=true@NoDisplay=false@' /usr/share/applications/input-remapp
 systemctl enable input-remapper.service
 systemctl enable uupd.timer
 
+# Restore tuned
+systemctl mask powerstation.service
+systemctl enable tuned.service
+systemctl enable tuned-ppd.service
+
 # Remove -deck specific changes to allow for login screens and session selection in settings
 rm -f /etc/sddm.conf.d/steamos.conf
 rm -f /etc/sddm.conf.d/virtualkbd.conf
