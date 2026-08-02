@@ -1,6 +1,7 @@
 export repo_organization := env("GITHUB_REPOSITORY_OWNER", "ublue-os")
 export image_name := env("IMAGE_NAME", "bazzite-dx")
 export default_tag := env("DEFAULT_TAG", "latest")
+export default_base_image := env("BASE_IMAGE", "ghcr.io/ublue-os/bazzite-deck:stable")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
 export SUDO_DISPLAY := if `if [ -n "${DISPLAY:-}" ] || [ -n "${WAYLAND_DISPLAY:-}" ]; then echo true; fi` == "true" { "true" } else { "false" }
 export SUDOIF := if `id -u` == "0" { "" } else if SUDO_DISPLAY == "true" { "sudo --askpass" } else { "sudo" }
@@ -53,7 +54,7 @@ clean:
 sudo-clean:
     ${SUDOIF} just clean
 
-build $target_image=image_name $tag=default_tag:
+build $target_image=image_name $tag=default_tag $base_image=default_base_image:
     #!/usr/bin/env bash
 
     # Get Version
@@ -62,6 +63,7 @@ build $target_image=image_name $tag=default_tag:
     BUILD_ARGS=()
     BUILD_ARGS+=("--build-arg" "IMAGE_NAME=${image_name}")
     BUILD_ARGS+=("--build-arg" "IMAGE_VENDOR=${repo_organization}")
+    BUILD_ARGS+=("--build-arg" "BASE_IMAGE=${base_image}")
     if [[ -z "$(git status -s)" ]]; then
       BUILD_ARGS+=("--build-arg" "SHA_HEAD_SHORT=$(git rev-parse --short HEAD)")
     fi
