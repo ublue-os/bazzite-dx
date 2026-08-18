@@ -15,7 +15,7 @@ env:
 
   # The tag used in the image from which we base of.
   # ex.: ghcr.io/org/image:IMAGE_SOURCE_TAG
-  IMAGE_SOURCE_TAG: "testing"
+  IMAGE_SOURCE_TAG: "stable"
   SOURCE_ORG: "ublue-os"
   SOURCE_REPO: "bazzite"
 
