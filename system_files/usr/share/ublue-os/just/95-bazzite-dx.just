@@ -27,6 +27,12 @@ install-fonts:
     echo "Installing extra fonts..."
     brew bundle --file=/usr/share/ublue-os/homebrew/bazzite-dx-fonts.Brewfile
 
+# Install local AI tools (llmman) from brew
+install-ai-tools:
+    #!/usr/bin/bash
+    echo "Installing local AI tools..."
+    brew bundle --file=/usr/share/ublue-os/homebrew/bazzite-dx-ai.Brewfile
+
 # Toggle default boot between Steam Game Mode (gamescope-session) and Desktop
 toggle-gamemode ACTION="":
     #!/usr/bin/bash
