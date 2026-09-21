@@ -27,10 +27,6 @@ dnf5 remove -y \
     mesa-libOpenCL
 
 dnf5 --setopt=install_weak_deps=False install -y \
-    rocm-hip \
-    rocm-opencl \
-    rocm-clinfo \
-    rocm-smi \
     qemu \
     libvirt \
     qemu-kvm \
