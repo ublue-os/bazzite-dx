@@ -35,8 +35,7 @@ dnf5 --setopt=install_weak_deps=False install -y \
     libvirt \
     qemu-kvm \
     virt-manager \
-    https://kojipkgs.fedoraproject.org/packages/edk2/20260508/8.fc44/x86_64/edk2-tools-20260508-8.fc44.x86_64.rpm \
-    https://kojipkgs.fedoraproject.org//packages/edk2/20260508/8.fc44/noarch/edk2-ovmf-20260508-8.fc44.noarch.rpm \
+    edk2-ovmf \
     guestfs-tools
 
 # Restore UUPD update timer and Input Remapper
