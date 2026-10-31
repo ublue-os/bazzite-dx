@@ -48,9 +48,8 @@ setup-virtualization ACTION="":
       )
     fi
     if [[ "${OPTION,,}" =~ (^enable[[:space:]]virtualization|virt-on) ]]; then
-        if ! rpm -q virt-manager | grep -P "^virt-manager-" 1>/dev/null; then
-          echo "Installing virt-manager..."
-          flatpak install flathub org.virt_manager.virt-manager
+        if rpm -q virt-manager | grep -P "^virt-manager-" 1>/dev/null; then
+          echo "Ignoring MSRS and silencing the ignore reports"
           rpm-ostree kargs \
           --append-if-missing="kvm.ignore_msrs=1" \
           --append-if-missing="kvm.report_ignored_msrs=0"
@@ -63,6 +62,9 @@ setup-virtualization ACTION="":
           sudo restorecon -rv /var/log/libvirt
           echo "Giving qemu access to read ISO files from $HOME"
           sudo setfacl -m u:qemu:rx $HOME
+          echo "Giving qemu access to read ISO files from /mnt and /media"
+          sudo setfacl -m u:qemu:rx /run/media
+          sudo setfacl -m u:qemu:rx /var/mnt
           if sudo test ! -f "/etc/libvirt/hooks/qemu"; then
             echo "Adding libvirt qemu hooks"
             sudo wget 'https://raw.githubusercontent.com/PassthroughPOST/VFIO-Tools/master/libvirt_hooks/qemu' -O /etc/libvirt/hooks/qemu
@@ -133,6 +135,9 @@ setup-virtualization ACTION="":
           echo "to get Single GPU passthrough working, however ${u}you will be on your own${n}."
           echo "${b}Do not ask for support for setting up Single GPU Passthrough, we can not help you!${n}"
         fi
+      else
+        echo 'Please "Enable Virtualization" and "Add yourself to libvirt group" first'
+        exit 1
       fi
     elif [[ "${OPTION,,}" =~ (^disable[[:space:]]vfio|vfio-off) ]]; then
       # Check if we are running on a Steam Deck
