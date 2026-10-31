@@ -116,7 +116,7 @@ setup-virtualization ACTION="":
         else
           rpm-ostree kargs \
             --append-if-missing="${VENDOR_KARG}" \
-            --append-if-missing="iommu=pt" \
+            --append-if-missing="iommu=on" \
             --append-if-missing="rd.driver.pre=vfio-pci" \
             --append-if-missing="vfio_pci.disable_vga=1"
           echo "VFIO will be enabled on next boot, make sure you enable IOMMU, VT-d or AMD-v in your BIOS!"
