@@ -38,52 +38,6 @@ dnf5 --setopt=install_weak_deps=False install -y \
     edk2-ovmf \
     guestfs-tools
 
-# Restore UUPD update timer and Input Remapper
-sed -i 's@^NoDisplay=true@NoDisplay=false@' /usr/share/applications/input-remapper-gtk.desktop
-systemctl enable input-remapper.service
-systemctl enable uupd.timer
-
-# Restore tuned
-systemctl mask powerstation.service
-systemctl enable tuned.service
-systemctl enable tuned-ppd.service
-
-# Remove -deck specific changes to allow for login screens and session selection in settings
-rm -f /etc/sddm.conf.d/steamos.conf
-rm -f /etc/sddm.conf.d/virtualkbd.conf
-rm -f /etc/sddm.conf.d/zz-steamos-autologin.conf
-rm -f /usr/share/gamescope-session-plus/bootstrap_steam.tar.gz
-dnf5 remove -y steamos-manager-powerstation
-dnf5 install --enable-repo="copr:copr.fedorainfracloud.org:ublue-os:bazzite" -y \
-    ds-inhibit
-systemctl enable ds-inhibit.service
-
-if [[ "$IMAGE_NAME" == *gnome* ]]; then
-    # Remove SDDM and re-enable GDM on GNOME builds.
-    dnf5 remove -y \
-        sddm
-
-    systemctl enable gdm.service
-else
-    dnf5 install -y \
-        plasma-login-manager
-
-    dnf5 remove -y \
-        sddm
-
-    systemctl enable plasmalogin
-
-    # Re-enable logout and switch user functionality in KDE
-    sed -i -E \
-      -e 's/^(action\/switch_user)=false/\1=true/' \
-      -e 's/^(action\/start_new_session)=false/\1=true/' \
-      -e 's/^(action\/lock_screen)=false/\1=true/' \
-      -e 's/^(kcm_sddm\.desktop)=false/\1=true/' \
-      -e 's/^(kcm_plymouth\.desktop)=false/\1=true/' \
-      /etc/xdg/kdeglobals
-fi
-
-
 dnf5 install --enable-repo="copr:copr.fedorainfracloud.org:ublue-os:packages" -y \
     ublue-setup-services
 
